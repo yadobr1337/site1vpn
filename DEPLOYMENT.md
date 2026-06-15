@@ -59,6 +59,18 @@ openssl rand -base64 32
 Keep `DATABASE_URL="file:./production.db"` and
 `NEXTAUTH_URL="https://the1vpn.ru"`.
 
+For Telegram linking and notifications, set:
+
+```dotenv
+TELEGRAM_BOT_TOKEN="token-from-BotFather"
+TELEGRAM_WEBHOOK_SECRET="random-hex-secret"
+NEXT_PUBLIC_TELEGRAM_BOT_USERNAME="VPNthe1_bot"
+NEXT_PUBLIC_SUPPORT_TELEGRAM_URL="https://t.me/VPNthe1_bot"
+```
+
+Generate the webhook secret with `openssl rand -hex 32`. Never commit the bot
+token to Git.
+
 ## 4. Install, initialize, and build
 
 `NEXT_PUBLIC_*` values are embedded during the build, so set them in `.env`
@@ -112,6 +124,18 @@ After DNS points to this server and port 80 is publicly reachable:
 ```bash
 sudo certbot --nginx -d the1vpn.ru -d www.the1vpn.ru
 sudo certbot renew --dry-run
+```
+
+Register the Telegram webhook after HTTPS is working:
+
+```bash
+sudo -u site1vpn bash -lc 'cd /var/www/site1vpn && set -a && source .env && set +a && curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" --data-urlencode "url=${NEXTAUTH_URL}/api/telegram/webhook" --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"'
+```
+
+The response must contain `"ok":true`. Check the current webhook state with:
+
+```bash
+sudo -u site1vpn bash -lc 'cd /var/www/site1vpn && set -a && source .env && set +a && curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"'
 ```
 
 ## Updating

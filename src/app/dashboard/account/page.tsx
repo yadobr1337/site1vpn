@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { resendOwnEmailVerificationAction, updateOwnEmailAction, updateOwnPasswordAction, verifyOwnEmailAction } from "@/app/actions";
-import { TelegramLogin } from "@/components/auth/telegram-login";
+import { TelegramBotLink } from "@/components/telegram-bot-link";
 import { LogoutButton } from "@/components/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -197,7 +197,7 @@ export default async function DashboardAccountPage({
               Привязка Telegram
             </h2>
             <p className="text-sm leading-7 text-zinc-400">
-              Используйте Telegram Login Widget, чтобы привязать бота к текущему аккаунту.
+              Откройте бота из кабинета и нажмите Start, чтобы привязать Telegram к текущему аккаунту.
             </p>
             <p className="text-sm text-zinc-300">
               Текущее состояние:{" "}
@@ -213,7 +213,7 @@ export default async function DashboardAccountPage({
                 </p>
               </div>
             ) : (
-              <TelegramLogin mode="link" />
+              <TelegramBotLink />
             )}
           </Card>
 

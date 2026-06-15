@@ -126,7 +126,7 @@ model SystemSettings {
   siteName           String   @default("1VPN")
   pricePerDayKopeks  Int      @default(4900)
   trialDays          Int      @default(1)
-  deletionGraceHours Int      @default(20)
+  deletionGraceHours Int      @default(24)
   defaultHwidDeviceLimit Int  @default(3)
   captchaEnabled     Boolean  @default(false)
   paymentsMode       String   @default("demo")

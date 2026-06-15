@@ -29,6 +29,7 @@ import {
 } from "@/lib/remnawave";
 import { createSquad, deleteSquad, updateSquad } from "@/lib/squads";
 import { resolveUserIdentifier } from "@/lib/user-identity";
+import { SUBSCRIPTION_DELETION_GRACE_HOURS } from "@/lib/site";
 
 function parseKopeks(value: FormDataEntryValue | null) {
   const amount = Number(String(value ?? "0").replace(",", "."));
@@ -134,7 +135,7 @@ export async function updateSettingsAction(formData: FormData) {
     data: {
       pricePerDayKopeks: parseKopeks(formData.get("pricePerDay")),
       trialDays: parseRequiredPositiveInteger(formData.get("trialDays")),
-      deletionGraceHours: parseRequiredPositiveInteger(formData.get("deletionGraceHours")),
+      deletionGraceHours: SUBSCRIPTION_DELETION_GRACE_HOURS,
       defaultHwidDeviceLimit: parseRequiredPositiveInteger(formData.get("defaultHwidDeviceLimit")),
       captchaEnabled: String(formData.get("captchaEnabled")) === "on",
       supportTelegramUrl: String(formData.get("supportTelegramUrl") ?? "") || null,

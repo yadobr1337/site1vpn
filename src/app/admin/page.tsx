@@ -191,8 +191,12 @@ export default async function AdminPage({
                   className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
                   defaultValue={settings.deletionGraceHours}
                   name="deletionGraceHours"
+                  readOnly
                   type="number"
                 />
+                <span className="text-xs text-zinc-500">
+                  Ссылка и пользователь в скваде удаляются через 24 часа после окончания подписки.
+                </span>
               </label>
               <label className="grid gap-2 text-sm text-zinc-300">
                 Устройства по умолчанию

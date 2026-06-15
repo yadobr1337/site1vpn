@@ -32,12 +32,14 @@ async function generateUniquePublicId() {
 async function main() {
   await prisma.systemSettings.upsert({
     where: { id: "default" },
-    update: {},
+    update: {
+      deletionGraceHours: 24,
+    },
     create: {
       id: "default",
       pricePerDayKopeks: 4900,
       trialDays: 1,
-      deletionGraceHours: 20,
+      deletionGraceHours: 24,
       defaultHwidDeviceLimit: 3,
       captchaEnabled: false,
       paymentsMode: process.env.PAYMENTS_AUTO_APPROVE === "true" ? "demo" : "manual",

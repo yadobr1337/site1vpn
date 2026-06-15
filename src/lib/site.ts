@@ -6,4 +6,5 @@ export const siteConfig = {
 };
 
 export const MS_IN_DAY = 86_400_000;
+export const SUBSCRIPTION_DELETION_GRACE_HOURS = 24;
 export const DEFAULT_REMNAWAVE_EXPIRY_DAYS = 3650;

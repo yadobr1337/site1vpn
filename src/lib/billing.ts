@@ -13,7 +13,7 @@ import {
   provisionRemoteUser,
 } from "@/lib/remnawave";
 import { getSettings } from "@/lib/settings";
-import { MS_IN_DAY } from "@/lib/site";
+import { MS_IN_DAY, SUBSCRIPTION_DELETION_GRACE_HOURS } from "@/lib/site";
 import { ensureUserSquad } from "@/lib/squads";
 
 type ManagedUser = User & {
@@ -97,16 +97,32 @@ export async function settleUserBilling(
       return user;
     }
 
+    if (user.vpnProvisionState === "DELETED") {
+      return user;
+    }
+
     if (!user.subscriptionEndedAt) {
       return tx.user.update({
         where: { id: user.id },
         data: {
           balanceKopeks: 0,
           subscriptionEndedAt: now,
-          removalScheduledAt: new Date(now.getTime() + settings.deletionGraceHours * 3_600_000),
-          vpnProvisionState:
-            user.vpnProvisionState === "DELETED" ? user.vpnProvisionState : "DISABLED",
+          removalScheduledAt: new Date(
+            now.getTime() + SUBSCRIPTION_DELETION_GRACE_HOURS * 3_600_000,
+          ),
+          vpnProvisionState: "DISABLED",
         },
+        include: { squad: true },
+      });
+    }
+
+    const removalScheduledAt = new Date(
+      user.subscriptionEndedAt.getTime() + SUBSCRIPTION_DELETION_GRACE_HOURS * 3_600_000,
+    );
+    if (user.removalScheduledAt?.getTime() !== removalScheduledAt.getTime()) {
+      return tx.user.update({
+        where: { id: user.id },
+        data: { removalScheduledAt },
         include: { squad: true },
       });
     }
@@ -162,8 +178,10 @@ export async function settleUserBilling(
         billingCarryMicros: 0,
         lastBillingAt: endedAt,
         subscriptionEndedAt: endedAt,
-        removalScheduledAt: new Date(endedAt.getTime() + settings.deletionGraceHours * 3_600_000),
-        vpnProvisionState: user.vpnProvisionState === "DELETED" ? "DELETED" : "DISABLED",
+        removalScheduledAt: new Date(
+          endedAt.getTime() + SUBSCRIPTION_DELETION_GRACE_HOURS * 3_600_000,
+        ),
+        vpnProvisionState: "DISABLED",
         transactions: {
           create: {
             type: TransactionType.BILLING_DEBIT,
@@ -262,7 +280,7 @@ export async function topUpBalance(params: {
     user,
     type: NotificationType.TOPUP,
     cycleKey: `${user.billingCycle}:${user.updatedAt.toISOString()}`,
-    message: `<b>1VPN</b>\nБаланс пополнен на <b>${(params.amountKopeks / 100).toFixed(2)} RUB</b>.`,
+    message: `<b>1VPN</b>\nБаланс пополнен на <b>${(params.amountKopeks / 100).toFixed(2)} RUB</b>.\nТекущий баланс: <b>${(user.balanceKopeks / 100).toFixed(2)} RUB</b>.`,
   });
 
   return user;
@@ -309,7 +327,6 @@ export async function adjustBalanceByAdmin(params: {
 
   const user = await db.$transaction(
     async (tx) => {
-      const settings = await getSettings(tx);
       const settled = await settleUserBilling(params.userId, tx);
 
       if (params.amountKopeks > 0) {
@@ -338,7 +355,7 @@ export async function adjustBalanceByAdmin(params: {
           subscriptionEndedAt: nextBalance === 0 ? new Date() : null,
           removalScheduledAt:
             nextBalance === 0
-              ? new Date(Date.now() + settings.deletionGraceHours * 3_600_000)
+              ? new Date(Date.now() + SUBSCRIPTION_DELETION_GRACE_HOURS * 3_600_000)
               : null,
           transactions: {
             create: {
@@ -361,7 +378,7 @@ export async function adjustBalanceByAdmin(params: {
       user,
       type: NotificationType.TOPUP,
       cycleKey: `${user.billingCycle}:admin:${user.updatedAt.toISOString()}`,
-      message: `<b>1VPN</b>\nАдминистратор пополнил баланс на <b>${(params.amountKopeks / 100).toFixed(2)} RUB</b>.`,
+      message: `<b>1VPN</b>\nАдминистратор пополнил баланс на <b>${(params.amountKopeks / 100).toFixed(2)} RUB</b>.\nТекущий баланс: <b>${(user.balanceKopeks / 100).toFixed(2)} RUB</b>.`,
     });
   }
 
@@ -409,7 +426,7 @@ export async function syncUserLifecycle(userId: string) {
     maxWait: 10_000,
   });
 
-  if (!settled.squad) {
+  if (settled.balanceKopeks > 0 && !settled.squad) {
     await ensureUserSquad(settled.id);
   }
 
@@ -436,6 +453,22 @@ export async function syncUserLifecycle(userId: string) {
     }
 
     if (managed.balanceKopeks > 0) {
+      const remainingDays = computeRemainingDays(
+        managed.balanceKopeks,
+        settings.pricePerDayKopeks,
+        resolveHwidDeviceLimit(managed, settings.defaultHwidDeviceLimit),
+      );
+
+      if (remainingDays <= 1) {
+        await notifyUserOnce({
+          user: managed,
+          type: NotificationType.EXPIRING_SOON,
+          cycleKey: `${managed.billingCycle}:one-day`,
+          message:
+            "<b>1VPN</b>\nДо окончания подписки остался <b>1 день</b>. Пополните баланс, чтобы сохранить доступ.",
+        });
+      }
+
       if (!managed.squad?.remnawaveInternalSquadUuid) {
         return db.user.update({
           where: { id: managed.id },
@@ -472,53 +505,44 @@ export async function syncUserLifecycle(userId: string) {
         include: { squad: true },
       });
 
-      const remainingDays = computeRemainingDays(
-        updated.balanceKopeks,
-        settings.pricePerDayKopeks,
-        resolveHwidDeviceLimit(updated, settings.defaultHwidDeviceLimit),
-      );
-
-      if (remainingDays <= 1) {
-        await notifyUserOnce({
-          user: updated,
-          type: NotificationType.EXPIRING_SOON,
-          cycleKey: `${updated.billingCycle}:soon`,
-          message: `<b>1VPN</b>\nПодписка закончится меньше чем через сутки. Остаток: <b>${Math.max(0, Math.ceil(remainingDays))} дн.</b>`,
-        });
-      }
-
       return updated;
     }
 
     if (managed.subscriptionEndedAt) {
-      await disableRemoteUser(managed.remnawaveUserUuid);
       await notifyUserOnce({
         user: managed,
         type: NotificationType.EXPIRED,
         cycleKey: `${managed.billingCycle}:expired`,
-        message: `<b>1VPN</b>\nПодписка закончилась. Доступ отключен до пополнения баланса.`,
+        message: `<b>1VPN</b>\nПодписка закончилась, остаток: <b>0 дней</b>.\nСсылка и пользователь в скваде будут удалены через <b>${SUBSCRIPTION_DELETION_GRACE_HOURS} часа</b>, если баланс не пополнить.`,
       });
-      await notifyUserOnce({
-        user: managed,
-        type: NotificationType.DELETION_WARNING,
-        cycleKey: `${managed.billingCycle}:warning`,
-        message: `<b>1VPN</b>\nЕсли баланс не пополнить, ссылка будет удалена через <b>${settings.deletionGraceHours} часов</b>.`,
-      });
+      await disableRemoteUser(managed.remnawaveUserUuid);
     }
 
     if (managed.removalScheduledAt && managed.removalScheduledAt <= new Date()) {
       await deleteRemoteUser(managed.remnawaveUserUuid);
-      return db.user.update({
+      const deleted = await db.user.update({
         where: { id: managed.id },
         data: {
           remnawaveUserUuid: null,
           remnawaveShortUuid: null,
           subscriptionUrl: null,
+          squadId: null,
+          removalScheduledAt: null,
           vpnProvisionState: "DELETED",
           vpnStatusMessage: "Subscription link deleted after grace period",
         },
         include: { squad: true },
       });
+
+      await notifyUserOnce({
+        user: deleted,
+        type: NotificationType.DELETED,
+        cycleKey: `${deleted.billingCycle}:deleted`,
+        message:
+          "<b>1VPN</b>\nСсылка подписки удалена, пользователь удалён из сквада. Пополните баланс, чтобы создать доступ заново.",
+      });
+
+      return deleted;
     }
 
     return db.user.update({
