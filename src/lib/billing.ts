@@ -10,7 +10,6 @@ import { notifyUserOnce } from "@/lib/notifications";
 import {
   deleteRemoteUser,
   disableRemoteUser,
-  enableRemoteUser,
   provisionRemoteUser,
 } from "@/lib/remnawave";
 import { getSettings } from "@/lib/settings";
@@ -445,10 +444,6 @@ export async function syncUserLifecycle(userId: string) {
         hwidDeviceLimit: resolveHwidDeviceLimit(managed, settings.defaultHwidDeviceLimit),
         expireAt: computeSubscriptionExpireAt(managed, settings),
       });
-
-      if (managed.remnawaveUserUuid) {
-        await enableRemoteUser(managed.remnawaveUserUuid);
-      }
 
       const updated = await db.user.update({
         where: { id: managed.id },

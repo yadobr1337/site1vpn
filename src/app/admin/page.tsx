@@ -6,13 +6,10 @@ import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
 import { RemnawaveStatusCard } from "@/components/admin/remnawave-status-card";
 import { SquadManager } from "@/components/admin/squad-manager";
+import { UserManagerModal } from "@/components/admin/user-manager-modal";
 import {
-  adjustUserBalanceAction,
   runSyncNowAction,
-  syncUserNowAction,
-  toggleBanAction,
   updateSettingsAction,
-  updateUserHwidAction,
 } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -38,7 +35,11 @@ function getVpnStatusLabel(params: {
     return "Активный";
   }
 
-  return "Ожидает оплаты";
+  if (params.vpnProvisionState === VpnProvisionState.ERROR) {
+    return "Ошибка панели";
+  }
+
+  return "Синхронизация";
 }
 
 function getTransactionLabel(type: TransactionType) {
@@ -288,133 +289,35 @@ export default async function AdminPage({
                 });
 
                 return (
-                  <Card className="space-y-5">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-1">
-                        <p className="font-mono text-lg font-semibold text-white">
-                          ID: {searchedUser.publicId ?? "pending"}
-                        </p>
-                        <p className="text-sm text-zinc-400">{searchedUser.email}</p>
-                        <p className="text-xs text-zinc-500">Internal: {searchedUser.id}</p>
-                        <p className="text-sm text-zinc-500">
-                          Сквад: {searchedUser.squad?.name ?? "не назначен"}
-                        </p>
-                        <p className="text-sm text-zinc-500">
-                          Remnawave user UUID: {searchedUser.remnawaveUserUuid ?? "еще не создан"}
-                        </p>
-                        <p className="text-sm text-zinc-500">
-                          {searchedUser.subscriptionUrl ?? "Ссылка подписки еще не сгенерирована"}
-                        </p>
-                      </div>
-
-                      <div className="grid gap-2 text-right text-sm text-zinc-300">
-                        <p>Баланс: {formatCurrency(searchedUser.balanceKopeks)}</p>
-                        <p>Остаток: {formatDays(remainingDays)} дн.</p>
-                        <p>Устройства: {effectiveDeviceCount}</p>
-                        <p>Статус VPN: {vpnStatus}</p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`rounded-2xl border px-4 py-3 text-sm ${
-                        searchedUser.vpnProvisionState === VpnProvisionState.ERROR
-                          ? "border-red-400/25 bg-red-500/10 text-red-100"
-                          : "border-white/10 bg-black/20 text-zinc-300"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                        Диагностика выдачи
-                      </p>
-                      <p className="mt-2 break-words">
-                        {searchedUser.vpnStatusMessage ?? "Синхронизация еще не запускалась."}
-                      </p>
-                    </div>
-
-                    <div className="grid gap-3 xl:grid-cols-[auto_auto_220px_1fr]">
-                      <form action={syncUserNowAction} className="flex items-center gap-3">
-                        <input type="hidden" name="userId" value={searchedUser.id} />
-                        <PendingButton>Повторить выдачу</PendingButton>
-                      </form>
-
-                      <form action={toggleBanAction} className="flex items-center gap-3">
-                        <input type="hidden" name="userId" value={searchedUser.id} />
-                        <input type="hidden" name="ban" value={String(!searchedUser.isBanned)} />
-                        <PendingButton variant={searchedUser.isBanned ? "ghost" : "danger"}>
-                          {searchedUser.isBanned ? "Разбанить" : "Забанить"}
-                        </PendingButton>
-                      </form>
-
-                      <form action={updateUserHwidAction} className="flex items-center gap-3">
-                        <input type="hidden" name="userId" value={searchedUser.id} />
-                        <input
-                          className="h-11 w-full rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                          defaultValue={searchedUser.hwidDeviceLimit ?? ""}
-                          name="hwidDeviceLimit"
-                          placeholder={`По умолчанию: ${settings.defaultHwidDeviceLimit}`}
-                          type="number"
-                        />
-                        <PendingButton variant="ghost">Устройства</PendingButton>
-                      </form>
-
-                      <form action={adjustUserBalanceAction} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-                        <input type="hidden" name="userId" value={searchedUser.id} />
-                        <input
-                          className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                          defaultValue="100"
-                          name="amount"
-                          step="1"
-                          type="number"
-                        />
-                        <input
-                          className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                          defaultValue="Ручное пополнение из админки"
-                          name="description"
-                          type="text"
-                        />
-                        <PendingButton variant="ghost">Пополнить баланс</PendingButton>
-                      </form>
-                    </div>
-
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
-                        История операций
-                      </p>
-                      <div className="grid gap-3">
-                        {searchedUser.transactions.length ? (
-                          searchedUser.transactions.map((transaction) => (
-                            <div
-                              key={transaction.id}
-                              className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3"
-                            >
-                              <div>
-                                <p className="text-sm font-semibold text-white">
-                                  {getTransactionLabel(transaction.type)}
-                                </p>
-                                <p className="text-xs text-zinc-500">{transaction.description}</p>
-                              </div>
-                              <div className="text-right">
-                                <p
-                                  className={`text-sm font-semibold ${
-                                    transaction.amountKopeks >= 0 ? "text-cyan-200" : "text-zinc-200"
-                                  }`}
-                                >
-                                  {transaction.amountKopeks >= 0 ? "+" : ""}
-                                  {formatCurrency(transaction.amountKopeks)}
-                                </p>
-                                <p className="text-xs text-zinc-500">
-                                  {transaction.createdAt.toLocaleString("ru-RU")}
-                                </p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
-                            Операций пока нет.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
+                  <UserManagerModal
+                    user={{
+                      id: searchedUser.id,
+                      publicId: searchedUser.publicId ?? "pending",
+                      email: searchedUser.email,
+                      squadName: searchedUser.squad?.name ?? "не назначен",
+                      remnawaveUserUuid: searchedUser.remnawaveUserUuid ?? "ещё не создан",
+                      subscriptionUrl:
+                        searchedUser.subscriptionUrl ?? "Ссылка подписки ещё не сгенерирована",
+                      balance: formatCurrency(searchedUser.balanceKopeks),
+                      remainingDays: formatDays(remainingDays),
+                      deviceCount: effectiveDeviceCount,
+                      hwidDeviceLimit: searchedUser.hwidDeviceLimit,
+                      defaultHwidDeviceLimit: settings.defaultHwidDeviceLimit,
+                      vpnStatus,
+                      vpnProvisionState: searchedUser.vpnProvisionState,
+                      vpnStatusMessage:
+                        searchedUser.vpnStatusMessage ?? "Синхронизация ещё не запускалась.",
+                      isBanned: searchedUser.isBanned,
+                      transactions: searchedUser.transactions.map((transaction) => ({
+                        id: transaction.id,
+                        label: getTransactionLabel(transaction.type),
+                        description: transaction.description,
+                        amount: formatCurrency(transaction.amountKopeks),
+                        positive: transaction.amountKopeks >= 0,
+                        createdAt: transaction.createdAt.toLocaleString("ru-RU"),
+                      })),
+                    }}
+                  />
                 );
               })()
             ) : (
