@@ -133,6 +133,11 @@ sudo systemctl enable --now site1vpn-restart.path
 sudo systemctl enable --now site1vpn site1vpn-healthcheck.timer
 ```
 
+The service intentionally avoids systemd mount-namespace hardening directives
+because some VPS/container hosts reject them with `status=226/NAMESPACE`. The
+application still runs as the unprivileged `site1vpn` user with
+`NoNewPrivileges=true`.
+
 ## Logs and backups
 
 ```bash

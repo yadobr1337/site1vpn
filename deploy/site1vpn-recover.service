@@ -4,4 +4,3 @@ Description=Restart 1VPN after a failed health check
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/systemctl restart site1vpn.service
-ExecStart=/usr/bin/systemctl restart nginx.service
