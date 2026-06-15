@@ -1,12 +1,18 @@
 import { z } from "zod";
 
+const emptyStringToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const optionalEnv = <T extends z.ZodType>(schema: T) =>
+  z.preprocess(emptyStringToUndefined, schema.optional());
+
 const clientSchema = z.object({
-  NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: z.string().optional(),
-  TURNSTILE_SITE_KEY: z.string().optional(),
-  NEXT_PUBLIC_OFFER_URL: z.string().optional(),
-  NEXT_PUBLIC_PRIVACY_URL: z.string().optional(),
-  NEXT_PUBLIC_SUPPORT_TELEGRAM_URL: z.string().optional(),
-  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().optional(),
+  NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: optionalEnv(z.string()),
+  TURNSTILE_SITE_KEY: optionalEnv(z.string()),
+  NEXT_PUBLIC_OFFER_URL: optionalEnv(z.string().url()),
+  NEXT_PUBLIC_PRIVACY_URL: optionalEnv(z.string().url()),
+  NEXT_PUBLIC_SUPPORT_TELEGRAM_URL: optionalEnv(z.string().url()),
+  NEXT_PUBLIC_SUPPORT_EMAIL: optionalEnv(z.string().email()),
 });
 
 export const publicEnv = clientSchema.parse({
