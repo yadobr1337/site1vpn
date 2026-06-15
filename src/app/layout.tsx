@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { TelegramMiniAutoAuth } from "@/components/telegram-mini-auto-auth";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -11,10 +10,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru">
-      <body>
-        <TelegramMiniAutoAuth />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

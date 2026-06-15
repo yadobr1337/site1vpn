@@ -1,14 +1,26 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LogoutButton } from "@/components/logout-button";
-import { ScrollReveal } from "@/components/scroll-reveal";
 import { getAuthSession } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
 import { siteConfig } from "@/lib/site";
 import { formatCurrency } from "@/lib/utils";
+
+function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return <a {...props} />;
+}
+
+function ScrollReveal({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: 1 | 2 | 3;
+}) {
+  return <div className={className}>{children}</div>;
+}
 
 const features = [
   {
@@ -96,16 +108,11 @@ export default async function HomePage() {
 
             <div className="flex max-w-[66%] flex-wrap justify-end gap-2">
               {session?.user ? (
-                <>
-                  <Link href="/dashboard">
-                    <Button size="sm" className="px-3 sm:px-4">
-                      Кабинет
-                    </Button>
-                  </Link>
-                  <div className="scale-90 origin-right sm:scale-100">
-                    <LogoutButton />
-                  </div>
-                </>
+                <Link href="/dashboard">
+                  <Button size="sm" className="px-3 sm:px-4">
+                    Кабинет
+                  </Button>
+                </Link>
               ) : (
                 <>
                   <Link href="/login">
@@ -201,7 +208,7 @@ export default async function HomePage() {
             </ScrollReveal>
           </div>
 
-          <div className="order-2">
+          <div className="mobile-lite-hidden order-2">
             <ScrollReveal delay={1}>
               <div className="hero-glow mx-auto max-w-[440px] sm:max-w-[560px]">
                 <Card className="overflow-hidden rounded-[28px] p-0 sm:rounded-[32px]">
@@ -220,8 +227,8 @@ export default async function HomePage() {
                       height={611}
                       className="rounded-[18px] opacity-90 sm:rounded-[24px]"
                       decoding="async"
-                      fetchPriority="high"
-                      loading="eager"
+                      fetchPriority="low"
+                      loading="lazy"
                     />
                     <div className="pointer-events-none absolute inset-4 rounded-[18px] border border-white/10 sm:inset-6 sm:rounded-[24px]" />
                   </div>
@@ -231,7 +238,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="deferred-section pb-6 sm:pb-8">
+        <section className="mobile-lite-hidden deferred-section pb-6 sm:pb-8">
           <ScrollReveal>
             <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">
               <div>

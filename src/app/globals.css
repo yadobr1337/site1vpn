@@ -599,6 +599,10 @@ a {
     background-image: radial-gradient(circle at top, rgba(15, 29, 52, 0.26), #04060b 58%);
   }
 
+  .mobile-lite-hidden {
+    display: none !important;
+  }
+
   body::before,
   body::after {
     display: none;
