@@ -291,7 +291,10 @@ export async function deleteRemoteUser(remnawaveUserUuid?: string | null) {
   return DeleteUserCommand.ResponseSchema.parse(result).response;
 }
 
-export async function getRemoteUserDevices(remnawaveUserUuid?: string | null) {
+export async function getRemoteUserDevices(
+  remnawaveUserUuid?: string | null,
+  signal?: AbortSignal,
+) {
   if (!isConfigured() || !remnawaveUserUuid) {
     return [];
   }
@@ -300,6 +303,7 @@ export async function getRemoteUserDevices(remnawaveUserUuid?: string | null) {
   const result = await remnawaveRequest<GetUserHwidDevicesCommand.Response>({
     path: GetUserHwidDevicesCommand.url(remnawaveUserUuid),
     method: "GET",
+    signal,
   });
 
   return GetUserHwidDevicesCommand.ResponseSchema.parse(result).response.devices;

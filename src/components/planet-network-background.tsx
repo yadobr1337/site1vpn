@@ -15,7 +15,8 @@ type Point2D = {
   scale: number;
 };
 
-const DESKTOP_POINT_COUNT = 320;
+const DESKTOP_POINT_COUNT = 180;
+const FRAME_INTERVAL_MS = 1000 / 30;
 const ROTATION_SPEED_Y = 0.00022;
 const TILT_X = -0.72;
 const TILT_Z = 0.42;
@@ -86,6 +87,8 @@ export function PlanetNetworkBackground() {
     let angleY = 0;
     let sphereRadius = 0;
     let points: Point3D[] = [];
+    let lastFrameAt = 0;
+    let started = false;
 
     function createSpherePoints() {
       points = [];
@@ -147,7 +150,14 @@ export function PlanetNetworkBackground() {
       context.fillRect(0, 0, width, height);
     }
 
-    function draw() {
+    function draw(frameAt: number) {
+      animationFrame = window.requestAnimationFrame(draw);
+
+      if (document.hidden || frameAt - lastFrameAt < FRAME_INTERVAL_MS) {
+        return;
+      }
+
+      lastFrameAt = frameAt;
       context.clearRect(0, 0, width, height);
       drawBackgroundGlow();
 
@@ -196,14 +206,26 @@ export function PlanetNetworkBackground() {
         });
 
       angleY += ROTATION_SPEED_Y;
-      animationFrame = window.requestAnimationFrame(draw);
     }
 
-    resize();
-    draw();
-    window.addEventListener("resize", resize);
+    function start() {
+      if (started) return;
+      started = true;
+      resize();
+      animationFrame = window.requestAnimationFrame(draw);
+      window.addEventListener("resize", resize);
+    }
+
+    const idleCallback = window.requestIdleCallback?.(start, { timeout: 1_500 });
+    const timeout = idleCallback === undefined ? window.setTimeout(start, 800) : undefined;
 
     return () => {
+      if (idleCallback !== undefined) {
+        window.cancelIdleCallback(idleCallback);
+      }
+      if (timeout !== undefined) {
+        window.clearTimeout(timeout);
+      }
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("resize", resize);
     };

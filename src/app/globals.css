@@ -118,6 +118,11 @@ a {
   pointer-events: none;
 }
 
+.deferred-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
+}
+
 .hero-glow {
   position: relative;
 }
@@ -584,13 +589,24 @@ a {
 @media (max-width: 767px), (pointer: coarse) {
   body::before,
   body::after {
-    animation: none;
-    opacity: 0.08;
-    inset: -10vmax;
+    display: none;
   }
 
   .planet-network-canvas {
     display: none;
+  }
+
+  .stagger-in {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+
+  .backdrop-blur-md,
+  .backdrop-blur-xl {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   .grid-overlay::before {
@@ -599,8 +615,7 @@ a {
   }
 
   .hero-glow::after {
-    inset: -10%;
-    filter: blur(28px);
+    display: none;
   }
 
   .card-lift:hover {
@@ -615,7 +630,7 @@ a {
   }
 
   .feature-card::after {
-    opacity: 0.28;
+    display: none;
   }
 
   .feature-visual {
@@ -663,5 +678,17 @@ a {
 
   .glitch::after {
     transform: translate(-1px, 0);
+  }
+
+  .glitch::before,
+  .glitch::after,
+  .feature-speed::before,
+  .feature-speed-visual span,
+  .feature-lock-shackle,
+  .feature-globe-ring,
+  .feature-smart-dot,
+  .feature-privacy-visual span,
+  .feature-privacy-visual::after {
+    animation: none;
   }
 }

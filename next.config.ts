@@ -4,7 +4,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/((?!_next/static|_next/image|favicon.ico).*)",
+        source: "/logo-main-mobile.jpg",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/((?!_next/static|_next/image|favicon.ico|logo-main-mobile.jpg).*)",
         headers: [
           {
             key: "Cache-Control",

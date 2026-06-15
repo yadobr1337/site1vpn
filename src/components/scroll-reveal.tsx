@@ -15,6 +15,15 @@ export function ScrollReveal({ children, className, delay }: ScrollRevealProps) 
     const node = ref.current;
     if (!node) return;
 
+    const skipAnimation =
+      window.matchMedia("(max-width: 767px)").matches ||
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (skipAnimation) {
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;

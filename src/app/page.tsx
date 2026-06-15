@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -212,13 +211,17 @@ export default async function HomePage() {
                     </p>
                   </div>
                   <div className="relative p-4 sm:p-6">
-                    <Image
-                      src="/logo-main.png"
+                    {/* Pre-compressed to avoid first-request image optimization latency. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/logo-main-mobile.jpg"
                       alt="1VPN logo"
-                      width={1280}
-                      height={720}
+                      width={1120}
+                      height={611}
                       className="rounded-[18px] opacity-90 sm:rounded-[24px]"
-                      priority
+                      decoding="async"
+                      fetchPriority="low"
+                      loading="lazy"
                     />
                     <div className="pointer-events-none absolute inset-4 rounded-[18px] border border-white/10 sm:inset-6 sm:rounded-[24px]" />
                   </div>
@@ -228,7 +231,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="pb-6 sm:pb-8">
+        <section className="deferred-section pb-6 sm:pb-8">
           <ScrollReveal>
             <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">
               <div>
@@ -257,7 +260,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="pb-8 sm:pb-10">
+        <section className="deferred-section pb-8 sm:pb-10">
           <ScrollReveal>
             <Card className="space-y-4 rounded-[26px] p-4 sm:space-y-5 sm:rounded-[28px] sm:p-6">
               <Badge className="px-3 py-1 text-[10px] tracking-[0.28em] sm:text-xs">

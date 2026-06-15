@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { signIn } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 declare global {
@@ -17,6 +16,15 @@ declare global {
 }
 
 const STORAGE_KEY = "telegram-mini-auto-auth";
+
+function isTelegramMiniAppLaunch() {
+  const launchParams = `${window.location.search}&${window.location.hash}`;
+  return (
+    launchParams.includes("tgWebAppData=") ||
+    launchParams.includes("tgWebAppVersion=") ||
+    /Telegram/i.test(window.navigator.userAgent)
+  );
+}
 
 export function TelegramMiniAutoAuth() {
   const pathname = usePathname();
@@ -43,6 +51,7 @@ export function TelegramMiniAutoAuth() {
       const callbackUrl =
         pathname === "/login" || pathname === "/register" ? "/dashboard" : window.location.href;
 
+      const { signIn } = await import("next-auth/react");
       const result = await signIn("telegram-mini", {
         initData,
         redirect: false,
@@ -62,6 +71,10 @@ export function TelegramMiniAutoAuth() {
 
     if (window.Telegram?.WebApp) {
       void run();
+      return;
+    }
+
+    if (!isTelegramMiniAppLaunch()) {
       return;
     }
 

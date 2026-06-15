@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   claimTrialAction,
   deleteOwnHwidDeviceAction,
@@ -44,6 +45,59 @@ function getVpnStatusLabel(
   return "Синхронизация";
 }
 
+async function DeviceList({ remnawaveUserUuid }: { remnawaveUserUuid?: string | null }) {
+  let devices: Awaited<ReturnType<typeof getRemoteUserDevices>> = [];
+  let panelUnavailable = false;
+
+  try {
+    devices = await getRemoteUserDevices(
+      remnawaveUserUuid,
+      AbortSignal.timeout(5_000),
+    );
+  } catch {
+    panelUnavailable = true;
+  }
+
+  if (panelUnavailable) {
+    return (
+      <div className="rounded-2xl border border-amber-400/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-100">
+        Панель долго отвечает. Список устройств не задерживает загрузку кабинета.
+      </div>
+    );
+  }
+
+  if (!devices.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
+        Активные устройства появятся после подключений через VPN-панель.
+      </div>
+    );
+  }
+
+  return devices.map((device) => (
+    <div
+      key={device.hwid}
+      className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <p className="text-sm font-semibold text-white">
+          {device.deviceModel || device.platform || `Устройство ${device.hwid.slice(0, 8)}`}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">HWID: {device.hwid}</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Последний вход: {device.updatedAt.toLocaleString("ru-RU")}
+        </p>
+      </div>
+      <form action={deleteOwnHwidDeviceAction}>
+        <input type="hidden" name="hwid" value={device.hwid} />
+        <Button variant="danger" type="submit">
+          Удалить
+        </Button>
+      </form>
+    </div>
+  ));
+}
+
 export default async function DashboardPage() {
   const session = await requireUser();
   const [overview, publicId, transactions] = await Promise.all([
@@ -65,7 +119,6 @@ export default async function DashboardPage() {
     return null;
   }
 
-  const devices = await getRemoteUserDevices(overview.user.remnawaveUserUuid);
   const canClaimTrial = !overview.user.trialClaimedAt;
   const hasLinkedTelegram = Boolean(overview.user.telegramId);
   const hasRealEmail = !overview.user.isEmailPlaceholder;
@@ -242,34 +295,15 @@ export default async function DashboardPage() {
               />
 
               <div className="space-y-3">
-                {devices.length ? (
-                  devices.map((device) => (
-                    <div
-                      key={device.hwid}
-                      className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {device.deviceModel || device.platform || `Устройство ${device.hwid.slice(0, 8)}`}
-                        </p>
-                        <p className="mt-1 text-xs text-zinc-500">HWID: {device.hwid}</p>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          Последний вход: {device.updatedAt.toLocaleString("ru-RU")}
-                        </p>
-                      </div>
-                      <form action={deleteOwnHwidDeviceAction}>
-                        <input type="hidden" name="hwid" value={device.hwid} />
-                        <Button variant="danger" type="submit">
-                          Удалить
-                        </Button>
-                      </form>
+                <Suspense
+                  fallback={
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
+                      Загружаем устройства...
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
-                    Активные устройства появятся после подключений через VPN-панель.
-                  </div>
-                )}
+                  }
+                >
+                  <DeviceList remnawaveUserUuid={overview.user.remnawaveUserUuid} />
+                </Suspense>
               </div>
             </div>
           </Card>
