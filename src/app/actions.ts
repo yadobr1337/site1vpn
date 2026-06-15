@@ -22,6 +22,7 @@ import {
 import {
   checkRemnawaveConnection,
   deleteRemoteUserDevice,
+  getRemoteInternalSquad,
   type RemnawaveConnectionStatus,
 } from "@/lib/remnawave";
 import { createSquad, deleteSquad, updateSquad } from "@/lib/squads";
@@ -146,24 +147,36 @@ export async function updateSettingsAction(formData: FormData) {
 
 export async function createSquadAction(formData: FormData) {
   await requireAdmin();
+  const remnawaveInternalSquadUuid = parseRequiredString(
+    formData.get("remnawaveInternalSquadUuid"),
+  );
+  await getRemoteInternalSquad(remnawaveInternalSquadUuid);
   await createSquad({
     name: String(formData.get("name") ?? ""),
     memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
-    remnawaveInternalSquadUuid: parseRequiredString(formData.get("remnawaveInternalSquadUuid")),
+    remnawaveInternalSquadUuid,
   });
+  await runLifecycleSweep();
   revalidatePath("/admin");
+  revalidatePath("/dashboard");
 }
 
 export async function updateSquadLimitAction(formData: FormData) {
   await requireAdmin();
+  const remnawaveInternalSquadUuid = parseRequiredString(
+    formData.get("remnawaveInternalSquadUuid"),
+  );
+  await getRemoteInternalSquad(remnawaveInternalSquadUuid);
   await updateSquad({
     squadId: String(formData.get("squadId")),
     name: String(formData.get("name") ?? ""),
     memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
     isActive: String(formData.get("isActive")) === "on",
-    remnawaveInternalSquadUuid: parseRequiredString(formData.get("remnawaveInternalSquadUuid")),
+    remnawaveInternalSquadUuid,
   });
+  await runLifecycleSweep();
   revalidatePath("/admin");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteSquadAction(formData: FormData) {
@@ -413,6 +426,14 @@ export async function deleteOwnHwidDeviceAction(formData: FormData) {
 export async function runSyncNowAction() {
   await requireAdmin();
   await runLifecycleSweep();
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function syncUserNowAction(formData: FormData) {
+  await requireAdmin();
+  const userId = await resolveUserIdentifier(String(formData.get("userId") ?? ""));
+  await syncUserLifecycle(userId);
   revalidatePath("/admin");
   revalidatePath("/dashboard");
 }

@@ -5,6 +5,7 @@ import {
   DeleteUserHwidDeviceCommand,
   DisableUserCommand,
   EnableUserCommand,
+  GetInternalSquadByUuidCommand,
   GetRemnawaveHealthCommand,
   GetUserHwidDevicesCommand,
   UpdateUserCommand,
@@ -49,11 +50,26 @@ async function remnawaveRequest<T>({
     },
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
-    signal,
+    signal: signal ?? AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const responseText = await response.text();
+    let message = responseText;
+
+    try {
+      const payload = JSON.parse(responseText) as {
+        message?: string | string[];
+        error?: string;
+      };
+      message = Array.isArray(payload.message)
+        ? payload.message.join("; ")
+        : payload.message ?? payload.error ?? responseText;
+    } catch {
+      // Keep the original response text when the panel did not return JSON.
+    }
+
+    throw new Error(`Remnawave API ${response.status}: ${message || response.statusText}`);
   }
 
   return (await response.json()) as T;
@@ -121,6 +137,20 @@ export async function checkRemnawaveConnection(): Promise<RemnawaveConnectionSta
       message: getConnectionErrorMessage(error),
     };
   }
+}
+
+export async function getRemoteInternalSquad(squadUuid: string) {
+  if (!isConfigured()) {
+    return null;
+  }
+
+  GetInternalSquadByUuidCommand.RequestSchema.parse({ uuid: squadUuid });
+  const result = await remnawaveRequest<GetInternalSquadByUuidCommand.Response>({
+    path: GetInternalSquadByUuidCommand.url(squadUuid),
+    method: "GET",
+  });
+
+  return GetInternalSquadByUuidCommand.ResponseSchema.parse(result).response;
 }
 
 function getDefaultInboundUuids() {

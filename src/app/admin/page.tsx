@@ -10,6 +10,7 @@ import {
   createSquadAction,
   deleteSquadAction,
   runSyncNowAction,
+  syncUserNowAction,
   toggleBanAction,
   updateSettingsAction,
   updateSquadLimitAction,
@@ -387,7 +388,27 @@ export default async function AdminPage({
                       </div>
                     </div>
 
-                    <div className="grid gap-3 xl:grid-cols-[auto_220px_1fr]">
+                    <div
+                      className={`rounded-2xl border px-4 py-3 text-sm ${
+                        searchedUser.vpnProvisionState === VpnProvisionState.ERROR
+                          ? "border-red-400/25 bg-red-500/10 text-red-100"
+                          : "border-white/10 bg-black/20 text-zinc-300"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                        Диагностика выдачи
+                      </p>
+                      <p className="mt-2 break-words">
+                        {searchedUser.vpnStatusMessage ?? "Синхронизация еще не запускалась."}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 xl:grid-cols-[auto_auto_220px_1fr]">
+                      <form action={syncUserNowAction} className="flex items-center gap-3">
+                        <input type="hidden" name="userId" value={searchedUser.id} />
+                        <PendingButton>Повторить выдачу</PendingButton>
+                      </form>
+
                       <form action={toggleBanAction} className="flex items-center gap-3">
                         <input type="hidden" name="userId" value={searchedUser.id} />
                         <input type="hidden" name="ban" value={String(!searchedUser.isBanned)} />
