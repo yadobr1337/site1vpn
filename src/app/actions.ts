@@ -11,7 +11,6 @@ import { requireAdmin, requireUser } from "@/lib/auth";
 import {
   adjustBalanceByAdmin,
   claimTrialDay,
-  clearBalanceByAdmin,
   runLifecycleSweep,
   setBanState,
   syncUserLifecycle,
@@ -158,6 +157,11 @@ export type SiteRestartActionState = {
   message: string;
 };
 
+export type AdminBalanceActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
 const initialSquadActionState: SquadActionState = {
   status: "idle",
   message: "",
@@ -173,8 +177,7 @@ export async function restartSiteAction(
   await requireAdmin();
   void _previousState;
 
-  const restartRequestPath =
-    env.SITE_RESTART_REQUEST_PATH ?? "/var/www/site1vpn/runtime/restart.request";
+  const restartRequestPath = "/var/www/site1vpn/runtime/restart.request";
 
   try {
     await mkdir(dirname(restartRequestPath), { recursive: true });
@@ -277,24 +280,39 @@ export async function toggleBanAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export async function adjustUserBalanceAction(formData: FormData) {
+export async function adjustUserBalanceAction(
+  _previousState: AdminBalanceActionState,
+  formData: FormData,
+): Promise<AdminBalanceActionState> {
   await requireAdmin();
-  await adjustBalanceByAdmin({
-    userId: await resolveUserIdentifier(String(formData.get("userId") ?? "")),
-    amountKopeks: parseKopeks(formData.get("amount")),
-    description: String(formData.get("description") ?? "Admin balance adjustment"),
-  });
-  revalidatePath("/admin");
-  revalidatePath("/dashboard");
-}
+  void _previousState;
 
-export async function clearUserBalanceAction(formData: FormData) {
-  await requireAdmin();
-  await clearBalanceByAdmin(
-    await resolveUserIdentifier(String(formData.get("userId") ?? "")),
-  );
-  revalidatePath("/admin");
-  revalidatePath("/dashboard");
+  try {
+    const operation = String(formData.get("operation") ?? "");
+    const amountKopeks = Math.abs(parseKopeks(formData.get("amount")));
+
+    if (amountKopeks <= 0 || !["credit", "debit"].includes(operation)) {
+      return { status: "error", message: "Укажите положительную сумму и выберите операцию." };
+    }
+
+    const isCredit = operation === "credit";
+    await adjustBalanceByAdmin({
+      userId: await resolveUserIdentifier(String(formData.get("userId") ?? "")),
+      amountKopeks: isCredit ? amountKopeks : -amountKopeks,
+      description:
+        String(formData.get("description") ?? "").trim() ||
+        (isCredit ? "Пополнение администратором" : "Списание администратором"),
+    });
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+
+    return {
+      status: "success",
+      message: isCredit ? "Сумма добавлена к балансу." : "Сумма списана с баланса.",
+    };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
 }
 
 export async function updateUserHwidAction(formData: FormData) {

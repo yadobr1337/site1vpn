@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import {
   restartSiteAction,
   type SiteRestartActionState,
@@ -17,6 +17,15 @@ const initialState: SiteRestartActionState = {
 export function SiteRestartCard() {
   const [state, action, pending] = useActionState(restartSiteAction, initialState);
 
+  useEffect(() => {
+    if (state.status !== "success") {
+      return;
+    }
+
+    const reloadTimer = window.setTimeout(() => window.location.reload(), 13_000);
+    return () => window.clearTimeout(reloadTimer);
+  }, [state.status]);
+
   return (
     <Card className="border-amber-400/20 bg-amber-500/[0.04]">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -27,7 +36,7 @@ export function SiteRestartCard() {
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
             Перезапускает весь процесс сайта. Во время перезапуска он будет недоступен несколько
-            секунд.
+            секунд. Запрос обрабатывается максимум за 10 секунд, затем страница обновится сама.
           </p>
           {state.message ? (
             <p

@@ -323,10 +323,17 @@ export async function adjustBalanceByAdmin(params: {
       }
 
       const nextBalance = Math.max(0, settled.balanceKopeks + params.amountKopeks);
+      const actualAdjustment = nextBalance - settled.balanceKopeks;
+
+      if (actualAdjustment === 0) {
+        throw new Error("Баланс пользователя уже равен нулю.");
+      }
+
       return tx.user.update({
         where: { id: settled.id },
         data: {
           balanceKopeks: nextBalance,
+          billingCarryMicros: nextBalance === 0 ? 0 : settled.billingCarryMicros,
           lastBillingAt: new Date(),
           subscriptionEndedAt: nextBalance === 0 ? new Date() : null,
           removalScheduledAt:
@@ -336,7 +343,7 @@ export async function adjustBalanceByAdmin(params: {
           transactions: {
             create: {
               type: TransactionType.ADMIN_ADJUSTMENT,
-              amountKopeks: params.amountKopeks,
+              amountKopeks: actualAdjustment,
               description: params.description,
             },
           },
@@ -358,43 +365,6 @@ export async function adjustBalanceByAdmin(params: {
     });
   }
 
-  return user;
-}
-
-export async function clearBalanceByAdmin(userId: string) {
-  const user = await db.$transaction(
-    async (tx) => {
-      const settings = await getSettings(tx);
-      const settled = await settleUserBilling(userId, tx);
-
-      if (settled.balanceKopeks <= 0) {
-        return settled;
-      }
-
-      const now = new Date();
-      return tx.user.update({
-        where: { id: settled.id },
-        data: {
-          balanceKopeks: 0,
-          billingCarryMicros: 0,
-          lastBillingAt: now,
-          subscriptionEndedAt: now,
-          removalScheduledAt: new Date(now.getTime() + settings.deletionGraceHours * 3_600_000),
-          transactions: {
-            create: {
-              type: TransactionType.ADMIN_ADJUSTMENT,
-              amountKopeks: -settled.balanceKopeks,
-              description: "Баланс обнулён администратором",
-            },
-          },
-        },
-        include: { squad: true },
-      });
-    },
-    { timeout: 15_000, maxWait: 10_000 },
-  );
-
-  await syncUserLifecycle(user.id);
   return user;
 }
 

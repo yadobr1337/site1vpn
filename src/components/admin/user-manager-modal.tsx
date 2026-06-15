@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   adjustUserBalanceAction,
-  clearUserBalanceAction,
+  type AdminBalanceActionState,
   syncUserNowAction,
   toggleBanAction,
   updateUserHwidAction,
@@ -41,6 +41,62 @@ export type AdminUserManagerData = {
   isBanned: boolean;
   transactions: AdminUserTransaction[];
 };
+
+const initialBalanceState: AdminBalanceActionState = {
+  status: "idle",
+  message: "",
+};
+
+function BalanceAdjustmentForm({
+  userId,
+  operation,
+}: {
+  userId: string;
+  operation: "credit" | "debit";
+}) {
+  const [state, action, pending] = useActionState(adjustUserBalanceAction, initialBalanceState);
+  const isCredit = operation === "credit";
+
+  return (
+    <form action={action} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+      <input type="hidden" name="userId" value={userId} />
+      <input type="hidden" name="operation" value={operation} />
+      <p className="text-sm font-semibold text-white">
+        {isCredit ? "Добавить сумму" : "Списать сумму"}
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[140px_1fr_auto]">
+        <input
+          className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
+          min="0.01"
+          name="amount"
+          placeholder="Сумма, ₽"
+          required
+          step="0.01"
+          type="number"
+        />
+        <input
+          className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
+          name="description"
+          placeholder="Комментарий"
+          type="text"
+        />
+        <Button type="submit" variant={isCredit ? "primary" : "danger"} disabled={pending}>
+          {pending ? "Применяем..." : isCredit ? "Добавить" : "Списать"}
+        </Button>
+      </div>
+      {state.message ? (
+        <p
+          aria-live="polite"
+          className={`mt-3 text-sm ${
+            state.status === "error" ? "text-red-300" : "text-emerald-300"
+          }`}
+        >
+          {state.message}
+        </p>
+      ) : null}
+    </form>
+  );
+}
 
 export function UserManagerModal({ user }: { user: AdminUserManagerData }) {
   const router = useRouter();
@@ -167,41 +223,13 @@ export function UserManagerModal({ user }: { user: AdminUserManagerData }) {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                  Изменить баланс
-                </p>
-                <form
-                  action={clearUserBalanceAction}
-                  onSubmit={(event) => {
-                    if (!window.confirm("Обнулить баланс и отключить VPN у пользователя?")) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <input type="hidden" name="userId" value={user.id} />
-                  <PendingButton variant="danger" size="sm">
-                    Обнулить баланс
-                  </PendingButton>
-                </form>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                Управление балансом
+              </p>
+              <div className="mt-4 grid gap-3">
+                <BalanceAdjustmentForm userId={user.id} operation="credit" />
+                <BalanceAdjustmentForm userId={user.id} operation="debit" />
               </div>
-              <form action={adjustUserBalanceAction} className="mt-4 grid gap-3 md:grid-cols-[160px_1fr_auto]">
-                <input type="hidden" name="userId" value={user.id} />
-                <input
-                  className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                  defaultValue="100"
-                  name="amount"
-                  step="1"
-                  type="number"
-                />
-                <input
-                  className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                  defaultValue="Ручное изменение из админки"
-                  name="description"
-                  type="text"
-                />
-                <PendingButton variant="ghost">Применить</PendingButton>
-              </form>
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">

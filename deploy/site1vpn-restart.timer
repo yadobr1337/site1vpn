@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll for 1VPN admin restart requests
+
+[Timer]
+OnCalendar=*-*-* *:*:00/10
+AccuracySec=1s
+Unit=site1vpn-restart.service
+
+[Install]
+WantedBy=timers.target

@@ -1,5 +1,6 @@
 [Unit]
 Description=Restart 1VPN after an admin request
+ConditionPathExists=/var/www/site1vpn/runtime/restart.request
 
 [Service]
 Type=oneshot

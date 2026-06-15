@@ -79,12 +79,14 @@ sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
 sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
 sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
+sudo cp deploy/site1vpn-restart.timer /etc/systemd/system/site1vpn-restart.timer
 sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
 sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
 sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn
 sudo systemctl enable --now site1vpn-restart.path
+sudo systemctl enable --now site1vpn-restart.timer
 sudo systemctl enable --now site1vpn-healthcheck.timer
 
 sudo cp deploy/nginx-the1vpn.ru.conf /etc/nginx/sites-available/the1vpn.ru
@@ -125,11 +127,13 @@ sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
 sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
 sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
+sudo cp deploy/site1vpn-restart.timer /etc/systemd/system/site1vpn-restart.timer
 sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
 sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
 sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn-restart.path
+sudo systemctl enable --now site1vpn-restart.timer
 sudo systemctl enable --now site1vpn site1vpn-healthcheck.timer
 ```
 
