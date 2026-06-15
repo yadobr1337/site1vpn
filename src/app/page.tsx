@@ -1,10 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getAuthSession } from "@/lib/auth";
 import { env } from "@/lib/env";
-import { getSettings } from "@/lib/settings";
-import { siteConfig } from "@/lib/site";
+import { PUBLIC_MONTHLY_PRICE_KOPEKS, PUBLIC_TRIAL_DAYS, siteConfig } from "@/lib/site";
 import { formatCurrency } from "@/lib/utils";
 
 function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
@@ -82,10 +80,8 @@ const features = [
   },
 ];
 
-export default async function HomePage() {
-  const [session, settings] = await Promise.all([getAuthSession(), getSettings()]);
-  const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? settings.supportTelegramUrl ?? null;
-  const monthlyPriceKopeks = settings.pricePerDayKopeks * 30;
+export default function HomePage() {
+  const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? null;
 
   return (
     <main className="grid-overlay overflow-hidden">
@@ -107,26 +103,16 @@ export default async function HomePage() {
             </Link>
 
             <div className="flex max-w-[66%] flex-wrap justify-end gap-2">
-              {session?.user ? (
-                <Link href="/dashboard">
-                  <Button size="sm" className="px-3 sm:px-4">
-                    Кабинет
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="ghost" size="sm" className="px-3 sm:px-4">
-                      Войти
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button size="sm" className="px-3 sm:px-4">
-                      Создать аккаунт
-                    </Button>
-                  </Link>
-                </>
-              )}
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="px-3 sm:px-4">
+                  Войти
+                </Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button size="sm" className="px-3 sm:px-4">
+                  Кабинет
+                </Button>
+              </Link>
             </div>
           </header>
         </ScrollReveal>
@@ -156,26 +142,16 @@ export default async function HomePage() {
 
             <ScrollReveal delay={3}>
               <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                {session?.user ? (
-                  <Link href="/dashboard">
-                    <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                      Открыть кабинет
-                    </Button>
-                  </Link>
-                ) : (
-                  <>
-                    <Link href="/register">
-                      <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                        Регистрация
-                      </Button>
-                    </Link>
-                    <Link href="/login">
-                      <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                        Войти
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                <Link href="/register">
+                  <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
+                    Регистрация
+                  </Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
+                    Открыть кабинет
+                  </Button>
+                </Link>
                 {supportTelegramUrl ? (
                   <Link href={supportTelegramUrl} target="_blank" rel="noreferrer">
                     <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
@@ -193,7 +169,7 @@ export default async function HomePage() {
                     Цена за месяц
                   </p>
                   <p className="mt-2.5 text-[2rem] font-bold leading-none text-white sm:mt-3 sm:text-3xl">
-                    {formatCurrency(monthlyPriceKopeks)}
+                    {formatCurrency(PUBLIC_MONTHLY_PRICE_KOPEKS)}
                   </p>
                 </Card>
                 <Card className="rounded-[24px] p-4 sm:rounded-[28px] sm:p-6">
@@ -201,7 +177,7 @@ export default async function HomePage() {
                     Пробный период
                   </p>
                   <p className="mt-2.5 text-[2rem] font-bold leading-none text-white sm:mt-3 sm:text-3xl">
-                    {settings.trialDays} день
+                    {PUBLIC_TRIAL_DAYS} день
                   </p>
                 </Card>
               </div>

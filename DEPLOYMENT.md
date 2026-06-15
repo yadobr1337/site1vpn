@@ -82,6 +82,8 @@ sudo -u site1vpn npm ci
 sudo -u site1vpn npm run prisma:push
 sudo -u site1vpn npm run prisma:seed
 sudo -u site1vpn npm run build
+sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
+sudo -u site1vpn ./deploy/publish-static-home.sh
 ```
 
 ## 5. Enable the application and Nginx
@@ -151,6 +153,7 @@ sudo -u site1vpn npm ci
 sudo -u site1vpn npm run prisma:push
 sudo -u site1vpn npm run build
 sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
+sudo -u site1vpn ./deploy/publish-static-home.sh
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
 sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
 sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
@@ -171,6 +174,9 @@ When updating Nginx on a server where Certbot already added HTTPS settings,
 do not overwrite the complete active virtual host with the HTTP-only template.
 Apply the `location` changes from `deploy/nginx-the1vpn.ru.conf` to the existing
 HTTPS server block, then run `sudo nginx -t && sudo systemctl reload nginx`.
+The static homepage is served directly by Nginx from
+`/var/www/site1vpn/runtime/public-home`; dashboard and API routes still use
+Next.js.
 
 The service intentionally avoids systemd mount-namespace hardening directives
 because some VPS/container hosts reject them with `status=226/NAMESPACE`. The
