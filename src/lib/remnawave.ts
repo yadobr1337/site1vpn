@@ -5,6 +5,7 @@ import {
   DeleteUserHwidDeviceCommand,
   DisableUserCommand,
   EnableUserCommand,
+  GetRemnawaveHealthCommand,
   GetUserHwidDevicesCommand,
   UpdateUserCommand,
 } from "@remnawave/backend-contract";
@@ -15,14 +16,26 @@ function isConfigured() {
   return Boolean(env.REMNAWAVE_BASE_URL && env.REMNAWAVE_API_TOKEN);
 }
 
+export type RemnawaveConnectionStatus = {
+  state: "connected" | "error" | "not_configured";
+  checkedAt: string;
+  baseUrl: string | null;
+  latencyMs: number | null;
+  instanceCount: number | null;
+  uptimeSeconds: number | null;
+  message: string;
+};
+
 async function remnawaveRequest<T>({
   path,
   method,
   body,
+  signal,
 }: {
   path: string;
   method: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
+  signal?: AbortSignal;
 }) {
   if (!isConfigured()) {
     throw new Error("Remnawave is not configured.");
@@ -36,6 +49,7 @@ async function remnawaveRequest<T>({
     },
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    signal,
   });
 
   if (!response.ok) {
@@ -43,6 +57,70 @@ async function remnawaveRequest<T>({
   }
 
   return (await response.json()) as T;
+}
+
+function getConnectionErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "Неизвестная ошибка подключения.";
+  }
+
+  if (error.name === "TimeoutError" || error.name === "AbortError") {
+    return "Панель не ответила за 8 секунд.";
+  }
+
+  const causeMessage =
+    error.cause instanceof Error && error.cause.message ? `: ${error.cause.message}` : "";
+  return `${error.message}${causeMessage}`.slice(0, 300);
+}
+
+export async function checkRemnawaveConnection(): Promise<RemnawaveConnectionStatus> {
+  const checkedAt = new Date().toISOString();
+  const baseUrl = env.REMNAWAVE_BASE_URL ? new URL(env.REMNAWAVE_BASE_URL).origin : null;
+
+  if (!isConfigured()) {
+    return {
+      state: "not_configured",
+      checkedAt,
+      baseUrl,
+      latencyMs: null,
+      instanceCount: null,
+      uptimeSeconds: null,
+      message: "Укажите REMNAWAVE_BASE_URL и REMNAWAVE_API_TOKEN в .env.",
+    };
+  }
+
+  const startedAt = performance.now();
+
+  try {
+    const result = await remnawaveRequest<GetRemnawaveHealthCommand.Response>({
+      path: GetRemnawaveHealthCommand.url,
+      method: "GET",
+      signal: AbortSignal.timeout(8_000),
+    });
+    const health = GetRemnawaveHealthCommand.ResponseSchema.parse(result).response;
+
+    return {
+      state: "connected",
+      checkedAt,
+      baseUrl,
+      latencyMs: Math.round(performance.now() - startedAt),
+      instanceCount: health.runtimeMetrics.length,
+      uptimeSeconds: health.runtimeMetrics.length
+        ? Math.max(...health.runtimeMetrics.map((metric) => metric.uptime))
+        : null,
+      message: "Панель Remnawave отвечает, API-токен принят.",
+    };
+  } catch (error) {
+    return {
+      state: "error",
+      checkedAt,
+      baseUrl,
+      latencyMs: Math.round(performance.now() - startedAt),
+      instanceCount: null,
+      uptimeSeconds: null,
+      message: getConnectionErrorMessage(error),
+    };
+  }
 }
 
 function getDefaultInboundUuids() {

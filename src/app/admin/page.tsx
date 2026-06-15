@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
+import { RemnawaveStatusCard } from "@/components/admin/remnawave-status-card";
 import {
   adjustUserBalanceAction,
   createSquadAction,
@@ -17,6 +18,7 @@ import {
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { checkRemnawaveConnection } from "@/lib/remnawave";
 import { ensureAllUsersHavePublicIds } from "@/lib/user-identity";
 import { formatCurrency, formatDays } from "@/lib/utils";
 
@@ -69,7 +71,7 @@ export default async function AdminPage({
   const userQuery = Array.isArray(params.user) ? params.user[0] : params.user;
   const normalizedQuery = userQuery?.trim();
 
-  const [settings, userStats, squads, searchedUser] = await Promise.all([
+  const [settings, userStats, squads, searchedUser, remnawaveStatus] = await Promise.all([
     getSettings(),
     db.user.aggregate({
       _count: {
@@ -108,6 +110,7 @@ export default async function AdminPage({
           },
         })
       : Promise.resolve(null),
+    checkRemnawaveConnection(),
   ]);
 
   const totalBalance = userStats._sum.balanceKopeks ?? 0;
@@ -137,6 +140,8 @@ export default async function AdminPage({
             </form>
           </div>
         </header>
+
+        <RemnawaveStatusCard initialStatus={remnawaveStatus} />
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card>

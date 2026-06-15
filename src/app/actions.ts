@@ -19,7 +19,11 @@ import {
   consumeEmailCode,
   issueEmailCode,
 } from "@/lib/email-codes";
-import { deleteRemoteUserDevice } from "@/lib/remnawave";
+import {
+  checkRemnawaveConnection,
+  deleteRemoteUserDevice,
+  type RemnawaveConnectionStatus,
+} from "@/lib/remnawave";
 import { createSquad, deleteSquad, updateSquad } from "@/lib/squads";
 import { resolveUserIdentifier } from "@/lib/user-identity";
 
@@ -411,4 +415,12 @@ export async function runSyncNowAction() {
   await runLifecycleSweep();
   revalidatePath("/admin");
   revalidatePath("/dashboard");
+}
+
+export async function refreshRemnawaveStatusAction(
+  previousStatus: RemnawaveConnectionStatus,
+): Promise<RemnawaveConnectionStatus> {
+  void previousStatus;
+  await requireAdmin();
+  return checkRemnawaveConnection();
 }
