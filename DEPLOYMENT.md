@@ -161,6 +161,11 @@ sudo systemctl enable --now site1vpn-restart.timer
 sudo systemctl enable --now site1vpn site1vpn-healthcheck.timer
 ```
 
+When updating Nginx on a server where Certbot already added HTTPS settings,
+do not overwrite the complete active virtual host with the HTTP-only template.
+Apply the `location` changes from `deploy/nginx-the1vpn.ru.conf` to the existing
+HTTPS server block, then run `sudo nginx -t && sudo systemctl reload nginx`.
+
 The service intentionally avoids systemd mount-namespace hardening directives
 because some VPS/container hosts reject them with `status=226/NAMESPACE`. The
 application still runs as the unprivileged `site1vpn` user with

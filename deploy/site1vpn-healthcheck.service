@@ -6,4 +6,3 @@ OnFailure=site1vpn-recover.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 10 --output /dev/null http://127.0.0.1:3000/api/health
-ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 10 --output /dev/null --header Host:the1vpn.ru http://127.0.0.1/api/health

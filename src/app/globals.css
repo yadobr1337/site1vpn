@@ -587,6 +587,18 @@ a {
 }
 
 @media (max-width: 767px), (pointer: coarse) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  body {
+    background-image: radial-gradient(circle at top, rgba(15, 29, 52, 0.26), #04060b 58%);
+  }
+
   body::before,
   body::after {
     display: none;

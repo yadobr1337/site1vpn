@@ -220,8 +220,8 @@ export default async function HomePage() {
                       height={611}
                       className="rounded-[18px] opacity-90 sm:rounded-[24px]"
                       decoding="async"
-                      fetchPriority="low"
-                      loading="lazy"
+                      fetchPriority="high"
+                      loading="eager"
                     />
                     <div className="pointer-events-none absolute inset-4 rounded-[18px] border border-white/10 sm:inset-6 sm:rounded-[24px]" />
                   </div>
