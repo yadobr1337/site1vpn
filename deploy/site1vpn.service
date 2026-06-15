@@ -10,13 +10,15 @@ Group=site1vpn
 WorkingDirectory=/var/www/site1vpn
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
-Environment=NODE_OPTIONS=--max-old-space-size=768
+Environment=NODE_OPTIONS=--max-old-space-size=384
 ExecStart=/usr/bin/node /var/www/site1vpn/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
 Restart=always
 RestartSec=3
 TimeoutStartSec=30
 TimeoutStopSec=20
 LimitNOFILE=65535
+MemoryHigh=500M
+MemoryMax=650M
 NoNewPrivileges=true
 UMask=0027
 

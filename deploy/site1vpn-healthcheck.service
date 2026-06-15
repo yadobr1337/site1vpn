@@ -1,8 +1,9 @@
 [Unit]
-Description=Check 1VPN application health
-After=network.target site1vpn.service
-OnFailure=site1vpn-recover.service
+Description=Check and recover 1VPN application and HTTPS
+After=network-online.target site1vpn.service nginx.service
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 10 --output /dev/null http://127.0.0.1:3000/api/health
+ExecStart=/usr/bin/bash /var/www/site1vpn/deploy/site1vpn-healthcheck.sh
+TimeoutStartSec=75

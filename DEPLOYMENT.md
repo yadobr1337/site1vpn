@@ -95,6 +95,9 @@ sudo cp deploy/site1vpn-restart.timer /etc/systemd/system/site1vpn-restart.timer
 sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
 sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
 sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
+sudo install -d /etc/systemd/system/nginx.service.d
+sudo cp deploy/nginx-restart.conf /etc/systemd/system/nginx.service.d/restart.conf
+sudo chmod 755 deploy/site1vpn-healthcheck.sh
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn
 sudo systemctl enable --now site1vpn-restart.path
@@ -155,6 +158,9 @@ sudo cp deploy/site1vpn-restart.timer /etc/systemd/system/site1vpn-restart.timer
 sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
 sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
 sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
+sudo install -d /etc/systemd/system/nginx.service.d
+sudo cp deploy/nginx-restart.conf /etc/systemd/system/nginx.service.d/restart.conf
+sudo chmod 755 deploy/site1vpn-healthcheck.sh
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn-restart.path
 sudo systemctl enable --now site1vpn-restart.timer
@@ -188,6 +194,15 @@ sudo journalctl -u site1vpn -u nginx --since "2 hours ago" --no-pager
 sudo journalctl -k --since "2 hours ago" --no-pager | grep -Ei "oom|out of memory|killed process"
 free -h
 df -h
+```
+
+The health check verifies the application on port 3000 and the local HTTPS
+proxy every minute. It restarts only the failed service. To inspect its latest
+result:
+
+```bash
+sudo systemctl status site1vpn-healthcheck.service --no-pager
+sudo journalctl -u site1vpn-healthcheck.service --since "30 minutes ago" --no-pager
 ```
 
 Back up the SQLite database regularly. Do not commit `.env` or any `.db` file.
