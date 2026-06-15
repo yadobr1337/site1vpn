@@ -75,9 +75,13 @@ sudo -u site1vpn npm run build
 ## 5. Enable the application and Nginx
 
 ```bash
+sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
+sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
+sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn
+sudo systemctl enable --now site1vpn-restart.path
 
 sudo cp deploy/nginx-the1vpn.ru.conf /etc/nginx/sites-available/the1vpn.ru
 sudo ln -s /etc/nginx/sites-available/the1vpn.ru /etc/nginx/sites-enabled/the1vpn.ru
@@ -111,6 +115,12 @@ sudo -u site1vpn git pull --ff-only
 sudo -u site1vpn npm ci
 sudo -u site1vpn npm run prisma:push
 sudo -u site1vpn npm run build
+sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
+sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
+sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
+sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
+sudo systemctl daemon-reload
+sudo systemctl enable --now site1vpn-restart.path
 sudo systemctl restart site1vpn
 ```
 

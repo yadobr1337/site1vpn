@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
 import { RemnawaveStatusCard } from "@/components/admin/remnawave-status-card";
+import { SiteRestartCard } from "@/components/admin/site-restart-card";
 import { SquadManager } from "@/components/admin/squad-manager";
 import { UserManagerModal } from "@/components/admin/user-manager-modal";
 import {
@@ -142,6 +143,7 @@ export default async function AdminPage({
         </header>
 
         <RemnawaveStatusCard initialStatus={remnawaveStatus} />
+        <SiteRestartCard />
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card>

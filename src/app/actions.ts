@@ -1,6 +1,8 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -9,6 +11,7 @@ import { requireAdmin, requireUser } from "@/lib/auth";
 import {
   adjustBalanceByAdmin,
   claimTrialDay,
+  clearBalanceByAdmin,
   runLifecycleSweep,
   setBanState,
   syncUserLifecycle,
@@ -150,6 +153,11 @@ export type SquadActionState = {
   message: string;
 };
 
+export type SiteRestartActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
 const initialSquadActionState: SquadActionState = {
   status: "idle",
   message: "",
@@ -157,6 +165,31 @@ const initialSquadActionState: SquadActionState = {
 
 function getActionErrorMessage(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 400) : "Неизвестная ошибка.";
+}
+
+export async function restartSiteAction(
+  _previousState: SiteRestartActionState,
+): Promise<SiteRestartActionState> {
+  await requireAdmin();
+  void _previousState;
+
+  const restartRequestPath =
+    env.SITE_RESTART_REQUEST_PATH ?? "/var/www/site1vpn/runtime/restart.request";
+
+  try {
+    await mkdir(dirname(restartRequestPath), { recursive: true });
+    await writeFile(restartRequestPath, new Date().toISOString(), "utf8");
+
+    return {
+      status: "success",
+      message: "Запрос отправлен. Сайт перезапускается и снова откроется через несколько секунд.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: `Не удалось отправить запрос перезапуска: ${getActionErrorMessage(error)}`,
+    };
+  }
 }
 
 export async function createSquadAction(
@@ -251,6 +284,15 @@ export async function adjustUserBalanceAction(formData: FormData) {
     amountKopeks: parseKopeks(formData.get("amount")),
     description: String(formData.get("description") ?? "Admin balance adjustment"),
   });
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function clearUserBalanceAction(formData: FormData) {
+  await requireAdmin();
+  await clearBalanceByAdmin(
+    await resolveUserIdentifier(String(formData.get("userId") ?? "")),
+  );
   revalidatePath("/admin");
   revalidatePath("/dashboard");
 }

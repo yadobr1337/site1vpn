@@ -1,0 +1,8 @@
+[Unit]
+Description=Restart 1VPN after an admin request
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sleep 2
+ExecStart=/usr/bin/rm -f /var/www/site1vpn/runtime/restart.request
+ExecStart=/usr/bin/systemctl restart site1vpn.service

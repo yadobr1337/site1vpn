@@ -16,7 +16,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=full
-ReadWritePaths=/var/www/site1vpn/.next /var/www/site1vpn/prisma
+ReadWritePaths=/var/www/site1vpn/.next /var/www/site1vpn/prisma /var/www/site1vpn/runtime
 
 [Install]
 WantedBy=multi-user.target

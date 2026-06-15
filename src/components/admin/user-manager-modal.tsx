@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   adjustUserBalanceAction,
+  clearUserBalanceAction,
   syncUserNowAction,
   toggleBanAction,
   updateUserHwidAction,
@@ -166,9 +167,24 @@ export function UserManagerModal({ user }: { user: AdminUserManagerData }) {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                Изменить баланс
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  Изменить баланс
+                </p>
+                <form
+                  action={clearUserBalanceAction}
+                  onSubmit={(event) => {
+                    if (!window.confirm("Обнулить баланс и отключить VPN у пользователя?")) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="userId" value={user.id} />
+                  <PendingButton variant="danger" size="sm">
+                    Обнулить баланс
+                  </PendingButton>
+                </form>
+              </div>
               <form action={adjustUserBalanceAction} className="mt-4 grid gap-3 md:grid-cols-[160px_1fr_auto]">
                 <input type="hidden" name="userId" value={user.id} />
                 <input

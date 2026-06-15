@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for 1VPN restart requests
+
+[Path]
+PathExists=/var/www/site1vpn/runtime/restart.request
+Unit=site1vpn-restart.service
+
+[Install]
+WantedBy=multi-user.target
