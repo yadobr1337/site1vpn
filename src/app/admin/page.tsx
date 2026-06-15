@@ -5,15 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
 import { RemnawaveStatusCard } from "@/components/admin/remnawave-status-card";
+import { SquadManager } from "@/components/admin/squad-manager";
 import {
   adjustUserBalanceAction,
-  createSquadAction,
-  deleteSquadAction,
   runSyncNowAction,
   syncUserNowAction,
   toggleBanAction,
   updateSettingsAction,
-  updateSquadLimitAction,
   updateUserHwidAction,
 } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
@@ -238,87 +236,16 @@ export default async function AdminPage({
               и удобное название.
             </p>
 
-            <form
-              action={createSquadAction}
-              className="mt-6 grid gap-4 xl:grid-cols-[1.1fr_1fr_180px_auto]"
-            >
-              <input
-                className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                name="remnawaveInternalSquadUuid"
-                placeholder="UUID сквада Remnawave"
-                required
-              />
-              <input
-                className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                name="name"
-                placeholder="Название для админки"
-              />
-              <input
-                className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                name="memberLimit"
-                placeholder="Лимит"
-                required
-                type="number"
-              />
-              <PendingButton>Добавить сквад</PendingButton>
-            </form>
-
-            <div className="mt-6 space-y-3">
-              {squads.length ? (
-                squads.map((squad) => (
-                  <div key={squad.id} className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <form
-                      action={updateSquadLimitAction}
-                      className="grid gap-3 xl:grid-cols-[1fr_1.2fr_160px_auto_auto]"
-                    >
-                      <input type="hidden" name="squadId" value={squad.id} />
-                      <input
-                        className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                        defaultValue={squad.name}
-                        name="name"
-                        placeholder="Название"
-                      />
-                      <input
-                        className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                        defaultValue={squad.remnawaveInternalSquadUuid ?? ""}
-                        name="remnawaveInternalSquadUuid"
-                        placeholder="UUID сквада"
-                        required
-                      />
-                      <input
-                        className="h-11 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                        defaultValue={squad.memberLimit}
-                        name="memberLimit"
-                        type="number"
-                      />
-                      <label className="flex items-center gap-2 text-sm text-zinc-300">
-                        <input defaultChecked={squad.isActive} name="isActive" type="checkbox" />
-                        active
-                      </label>
-                      <div className="flex gap-3">
-                        <PendingButton variant="ghost">Обновить</PendingButton>
-                        <button
-                          formAction={deleteSquadAction}
-                          name="squadId"
-                          value={squad.id}
-                          className="inline-flex h-11 items-center justify-center rounded-full border border-red-400/35 bg-red-500/10 px-5 text-sm font-medium text-red-100 transition duration-300 hover:border-red-400/60 hover:bg-red-500/20"
-                        >
-                          Удалить
-                        </button>
-                      </div>
-                    </form>
-                    <p className="mt-3 text-sm text-zinc-400">
-                      Занято {squad._count.users} из {squad.memberLimit} мест
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-3xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-zinc-400">
-                  Сквады еще не добавлены. Пока что пользователи будут создаваться без назначения, а
-                  выдача VPN останется в ожидании.
-                </div>
-              )}
-            </div>
+            <SquadManager
+              squads={squads.map((squad) => ({
+                id: squad.id,
+                name: squad.name,
+                memberLimit: squad.memberLimit,
+                isActive: squad.isActive,
+                remnawaveInternalSquadUuid: squad.remnawaveInternalSquadUuid,
+                userCount: squad._count.users,
+              }))}
+            />
           </Card>
         </section>
 

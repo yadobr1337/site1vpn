@@ -102,18 +102,19 @@ export async function updateSquad(input: {
 export async function deleteSquad(squadId: string) {
   const squad = await db.squad.findUnique({
     where: { id: squadId },
-    include: { _count: { select: { users: true } } },
   });
 
   if (!squad) {
     throw new Error("Squad not found.");
   }
 
-  if (squad._count.users > 0) {
-    throw new Error("Move users out of the squad before deleting it.");
-  }
-
-  await db.squad.delete({ where: { id: squadId } });
+  await db.$transaction([
+    db.user.updateMany({
+      where: { squadId },
+      data: { squadId: null },
+    }),
+    db.squad.delete({ where: { id: squadId } }),
+  ]);
 }
 
 export type SquadWithUsage = Squad & {

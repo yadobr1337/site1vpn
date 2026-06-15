@@ -145,44 +145,93 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
-export async function createSquadAction(formData: FormData) {
-  await requireAdmin();
-  const remnawaveInternalSquadUuid = parseRequiredString(
-    formData.get("remnawaveInternalSquadUuid"),
-  );
-  await getRemoteInternalSquad(remnawaveInternalSquadUuid);
-  await createSquad({
-    name: String(formData.get("name") ?? ""),
-    memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
-    remnawaveInternalSquadUuid,
-  });
-  await runLifecycleSweep();
-  revalidatePath("/admin");
-  revalidatePath("/dashboard");
+export type SquadActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+const initialSquadActionState: SquadActionState = {
+  status: "idle",
+  message: "",
+};
+
+function getActionErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 400) : "Неизвестная ошибка.";
 }
 
-export async function updateSquadLimitAction(formData: FormData) {
+export async function createSquadAction(
+  _previousState: SquadActionState = initialSquadActionState,
+  formData: FormData,
+): Promise<SquadActionState> {
   await requireAdmin();
-  const remnawaveInternalSquadUuid = parseRequiredString(
-    formData.get("remnawaveInternalSquadUuid"),
-  );
-  await getRemoteInternalSquad(remnawaveInternalSquadUuid);
-  await updateSquad({
-    squadId: String(formData.get("squadId")),
-    name: String(formData.get("name") ?? ""),
-    memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
-    isActive: String(formData.get("isActive")) === "on",
-    remnawaveInternalSquadUuid,
-  });
-  await runLifecycleSweep();
-  revalidatePath("/admin");
-  revalidatePath("/dashboard");
+  void _previousState;
+
+  try {
+    const remnawaveInternalSquadUuid = parseRequiredString(
+      formData.get("remnawaveInternalSquadUuid"),
+    );
+    await getRemoteInternalSquad(remnawaveInternalSquadUuid);
+    await createSquad({
+      name: String(formData.get("name") ?? ""),
+      memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
+      remnawaveInternalSquadUuid,
+    });
+    await runLifecycleSweep();
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    return { status: "success", message: "Сквад добавлен, синхронизация запущена." };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
 }
 
-export async function deleteSquadAction(formData: FormData) {
+export async function updateSquadLimitAction(
+  _previousState: SquadActionState = initialSquadActionState,
+  formData: FormData,
+): Promise<SquadActionState> {
   await requireAdmin();
-  await deleteSquad(String(formData.get("squadId")));
-  revalidatePath("/admin");
+  void _previousState;
+
+  try {
+    const remnawaveInternalSquadUuid = parseRequiredString(
+      formData.get("remnawaveInternalSquadUuid"),
+    );
+    await getRemoteInternalSquad(remnawaveInternalSquadUuid);
+    await updateSquad({
+      squadId: String(formData.get("squadId")),
+      name: String(formData.get("name") ?? ""),
+      memberLimit: parseRequiredPositiveInteger(formData.get("memberLimit")),
+      isActive: String(formData.get("isActive")) === "on",
+      remnawaveInternalSquadUuid,
+    });
+    await runLifecycleSweep();
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    return { status: "success", message: "Сквад обновлён, пользователи синхронизированы." };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
+}
+
+export async function deleteSquadAction(
+  _previousState: SquadActionState = initialSquadActionState,
+  formData: FormData,
+): Promise<SquadActionState> {
+  await requireAdmin();
+  void _previousState;
+
+  try {
+    await deleteSquad(String(formData.get("squadId")));
+    await runLifecycleSweep();
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    return {
+      status: "success",
+      message: "Сквад удалён. Пользователи отвязаны и перераспределены при наличии мест.",
+    };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
 }
 
 export async function toggleBanAction(formData: FormData) {
