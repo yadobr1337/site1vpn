@@ -141,25 +141,33 @@ export async function sendTelegramMessage(chatId: string, text: string) {
     return { ok: false, error: "Telegram bot token is not configured." } as const;
   }
 
-  const response = await fetch(
-    `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
-      cache: "no-store",
-    },
-  );
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+        }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    return { ok: false, error: errorText } as const;
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { ok: false, error: errorText } as const;
+    }
+
+    return { ok: true } as const;
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Telegram request failed.",
+    } as const;
   }
-
-  return { ok: true } as const;
 }

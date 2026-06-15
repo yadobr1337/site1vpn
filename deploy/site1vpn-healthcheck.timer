@@ -1,0 +1,12 @@
+[Unit]
+Description=Check 1VPN application every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=true
+Unit=site1vpn-healthcheck.service
+
+[Install]
+WantedBy=timers.target

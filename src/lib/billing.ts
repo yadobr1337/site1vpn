@@ -20,6 +20,10 @@ type ManagedUser = User & {
   squad: Squad | null;
 };
 
+const lifecycleState = globalThis as typeof globalThis & {
+  __oneVpnLifecycleSweep?: Promise<void>;
+};
+
 function normalizeDeviceCount(deviceCount: number) {
   return Math.max(1, deviceCount);
 }
@@ -571,7 +575,7 @@ export async function syncUserLifecycle(userId: string) {
   }
 }
 
-export async function runLifecycleSweep() {
+async function executeLifecycleSweep() {
   const users = await db.user.findMany({
     select: { id: true },
   });
@@ -582,6 +586,26 @@ export async function runLifecycleSweep() {
     } catch (error) {
       console.error(`[lifecycle] failed to sync user ${user.id}`, error);
     }
+  }
+}
+
+export async function runLifecycleSweep() {
+  if (lifecycleState.__oneVpnLifecycleSweep) {
+    console.warn("[lifecycle] sweep already running; reusing the active job");
+    return lifecycleState.__oneVpnLifecycleSweep;
+  }
+
+  const startedAt = Date.now();
+  const sweep = executeLifecycleSweep();
+  lifecycleState.__oneVpnLifecycleSweep = sweep;
+
+  try {
+    await sweep;
+  } finally {
+    if (lifecycleState.__oneVpnLifecycleSweep === sweep) {
+      lifecycleState.__oneVpnLifecycleSweep = undefined;
+    }
+    console.info(`[lifecycle] sweep completed in ${Date.now() - startedAt} ms`);
   }
 }
 

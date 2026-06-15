@@ -79,9 +79,13 @@ sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
 sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
 sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
+sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
+sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
+sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn
 sudo systemctl enable --now site1vpn-restart.path
+sudo systemctl enable --now site1vpn-healthcheck.timer
 
 sudo cp deploy/nginx-the1vpn.ru.conf /etc/nginx/sites-available/the1vpn.ru
 sudo ln -s /etc/nginx/sites-available/the1vpn.ru /etc/nginx/sites-enabled/the1vpn.ru
@@ -94,6 +98,7 @@ Check the app before enabling HTTPS:
 
 ```bash
 curl -I http://127.0.0.1:3000
+curl http://127.0.0.1:3000/api/health
 curl -I http://the1vpn.ru
 sudo systemctl status site1vpn
 ```
@@ -111,6 +116,7 @@ sudo certbot renew --dry-run
 
 ```bash
 cd /var/www/site1vpn
+sudo systemctl stop site1vpn-healthcheck.timer site1vpn
 sudo -u site1vpn git pull --ff-only
 sudo -u site1vpn npm ci
 sudo -u site1vpn npm run prisma:push
@@ -119,16 +125,31 @@ sudo install -d -o site1vpn -g site1vpn /var/www/site1vpn/runtime
 sudo cp deploy/site1vpn.service /etc/systemd/system/site1vpn.service
 sudo cp deploy/site1vpn-restart.service /etc/systemd/system/site1vpn-restart.service
 sudo cp deploy/site1vpn-restart.path /etc/systemd/system/site1vpn-restart.path
+sudo cp deploy/site1vpn-healthcheck.service /etc/systemd/system/site1vpn-healthcheck.service
+sudo cp deploy/site1vpn-healthcheck.timer /etc/systemd/system/site1vpn-healthcheck.timer
+sudo cp deploy/site1vpn-recover.service /etc/systemd/system/site1vpn-recover.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now site1vpn-restart.path
-sudo systemctl restart site1vpn
+sudo systemctl enable --now site1vpn site1vpn-healthcheck.timer
 ```
 
 ## Logs and backups
 
 ```bash
 sudo journalctl -u site1vpn -f
+sudo journalctl -u site1vpn-healthcheck.service -u site1vpn-recover.service -f
 sudo cp /var/www/site1vpn/prisma/production.db /root/site1vpn-$(date +%F).db
+```
+
+If the site unexpectedly closes connections, inspect the application, Nginx,
+kernel OOM log, memory, and disk:
+
+```bash
+sudo systemctl status site1vpn nginx --no-pager
+sudo journalctl -u site1vpn -u nginx --since "2 hours ago" --no-pager
+sudo journalctl -k --since "2 hours ago" --no-pager | grep -Ei "oom|out of memory|killed process"
+free -h
+df -h
 ```
 
 Back up the SQLite database regularly. Do not commit `.env` or any `.db` file.
