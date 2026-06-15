@@ -41,14 +41,15 @@ export function TelegramBotLink() {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-3">
         <Button type="button" onClick={startLinking} disabled={pending}>
-          {pending ? "Открываем Telegram..." : "Привязать через @VPNthe1_bot"}
+          {pending ? "Открываем Telegram..." : "Подтвердить через @VPNthe1_bot"}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.refresh()}>
           Проверить привязку
         </Button>
       </div>
       <p className="text-sm leading-6 text-zinc-400">
-        В Telegram нажмите Start. Одноразовая ссылка действует 15 минут.
+        В Telegram нажмите Start. После подтверждения станут доступны бесплатный день и уведомления.
+        Одноразовая ссылка действует 15 минут.
       </p>
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
     </div>

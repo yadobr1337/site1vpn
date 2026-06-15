@@ -120,7 +120,7 @@ export default async function DashboardPage() {
   }
 
   const canClaimTrial = !overview.user.trialClaimedAt;
-  const hasLinkedTelegram = Boolean(overview.user.telegramId);
+  const hasLinkedTelegram = Boolean(overview.user.telegramBotConfirmedAt);
   const hasRealEmail = !overview.user.isEmailPlaceholder;
   const emailNeedsVerification = Boolean(
     overview.user.pendingEmail || (hasRealEmail && !overview.user.emailVerified),

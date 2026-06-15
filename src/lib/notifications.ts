@@ -1,6 +1,10 @@
 import { NotificationType, type User } from "@prisma/client";
 import { db } from "@/lib/db";
-import { sendTelegramMessage } from "@/lib/telegram";
+import {
+  escapeTelegramHtml,
+  sendTelegramMessage,
+  sendTelegramPhoto,
+} from "@/lib/telegram";
 
 export async function notifyUserOnce(params: {
   user: Pick<User, "id" | "telegramId" | "email">;
@@ -50,4 +54,47 @@ export async function notifyUserOnce(params: {
       message,
     },
   });
+}
+
+export async function broadcastTelegramMessage(params: {
+  text: string;
+  photo?: File | null;
+}) {
+  const users = await db.user.findMany({
+    where: {
+      telegramBotConfirmedAt: {
+        not: null,
+      },
+      telegramId: {
+        not: null,
+      },
+    },
+    select: {
+      telegramId: true,
+    },
+  });
+
+  const message = `📣 <b>Объявление</b>\n\n${escapeTelegramHtml(params.text)}`;
+  let delivered = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    if (!user.telegramId) continue;
+
+    const result = params.photo
+      ? await sendTelegramPhoto(user.telegramId, message, params.photo)
+      : await sendTelegramMessage(user.telegramId, message);
+
+    if (result.ok) {
+      delivered += 1;
+    } else {
+      failed += 1;
+    }
+  }
+
+  return {
+    recipients: users.length,
+    delivered,
+    failed,
+  };
 }

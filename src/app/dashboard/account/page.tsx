@@ -65,6 +65,7 @@ export default async function DashboardAccountPage({
         passwordHash: true,
         telegramId: true,
         telegramUsername: true,
+        telegramBotConfirmedAt: true,
         isEmailPlaceholder: true,
       },
     }),
@@ -202,10 +203,14 @@ export default async function DashboardAccountPage({
             <p className="text-sm text-zinc-300">
               Текущее состояние:{" "}
               <span className="font-semibold text-white">
-                {user.telegramId ? `@${user.telegramUsername ?? user.telegramId}` : "Telegram не привязан"}
+                {user.telegramBotConfirmedAt
+                  ? `@${user.telegramUsername ?? user.telegramId}`
+                  : user.telegramId
+                    ? "Вход выполнен, требуется подтверждение в боте"
+                    : "Telegram не привязан"}
               </span>
             </p>
-            {user.telegramId ? (
+            {user.telegramBotConfirmedAt ? (
               <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-4">
                 <p className="text-sm text-emerald-200">
                   Telegram уже привязан. Уведомления о балансе и подписке будут приходить в этот

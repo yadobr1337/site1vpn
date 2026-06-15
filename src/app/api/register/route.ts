@@ -25,6 +25,13 @@ export async function POST(request: Request) {
   const payload = registerSchema.parse(await request.json());
   const settings = await getSettings();
 
+  if (settings.maintenanceEnabled) {
+    return NextResponse.json(
+      { error: "Регистрация временно недоступна из-за технических работ." },
+      { status: 503 },
+    );
+  }
+
   if (settings.captchaEnabled) {
     const captchaOk = await verifyTurnstileToken(payload.captchaToken);
     if (!captchaOk) {

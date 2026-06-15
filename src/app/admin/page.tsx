@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
 import { RemnawaveStatusCard } from "@/components/admin/remnawave-status-card";
+import { AdminOperations } from "@/components/admin/admin-operations";
 import { SiteRestartCard } from "@/components/admin/site-restart-card";
 import { SquadManager } from "@/components/admin/squad-manager";
 import { UserManagerModal } from "@/components/admin/user-manager-modal";
@@ -161,6 +162,11 @@ export default async function AdminPage({
             </p>
           </Card>
         </section>
+
+        <AdminOperations
+          maintenanceEnabled={settings.maintenanceEnabled}
+          maintenanceMessage={settings.maintenanceMessage}
+        />
 
         <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
           <Card>

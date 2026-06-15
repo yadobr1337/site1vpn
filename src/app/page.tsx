@@ -1,9 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MaintenanceScreen } from "@/components/maintenance-screen";
 import { PublicPricing } from "@/components/public-pricing";
+import { TelegramLogin } from "@/components/auth/telegram-login";
+import { getAuthSession } from "@/lib/auth";
 import { env } from "@/lib/env";
-import { PUBLIC_MONTHLY_PRICE_KOPEKS, PUBLIC_TRIAL_DAYS, siteConfig } from "@/lib/site";
+import { getSettings } from "@/lib/settings";
+import { PUBLIC_BILLING_MONTH_DAYS, siteConfig } from "@/lib/site";
 
 function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   return <a {...props} />;
@@ -80,7 +84,21 @@ const features = [
   },
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [session, settings] = await Promise.all([getAuthSession(), getSettings()]);
+
+  if (settings.maintenanceEnabled && session?.user.role !== "ADMIN") {
+    return (
+      <MaintenanceScreen
+        message={settings.maintenanceMessage}
+        showLogin={!session?.user}
+        showLogout={Boolean(session?.user)}
+      />
+    );
+  }
+
   const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? null;
 
   return (
@@ -102,17 +120,36 @@ export default function HomePage() {
               </div>
             </Link>
 
-            <div className="flex max-w-[66%] flex-wrap justify-end gap-2">
-              <Link href="/login">
-                <Button variant="ghost" size="sm" className="px-3 sm:px-4">
-                  Войти
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button size="sm" className="px-3 sm:px-4">
-                  Кабинет
-                </Button>
-              </Link>
+            <div className="flex max-w-[72%] flex-wrap justify-end gap-2">
+              {session?.user ? (
+                <>
+                  {session.user.role === "ADMIN" ? (
+                    <Link href="/admin">
+                      <Button variant="ghost" size="sm" className="px-3 sm:px-4">
+                        Админка
+                      </Button>
+                    </Link>
+                  ) : null}
+                  <Link href="/dashboard">
+                    <Button size="sm" className="px-3 sm:px-4">
+                      Личный кабинет
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" size="sm" className="px-3 sm:px-4">
+                      Войти
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button size="sm" className="px-3 sm:px-4">
+                      Регистрация
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </header>
         </ScrollReveal>
@@ -141,17 +178,27 @@ export default function HomePage() {
             </div>
 
             <ScrollReveal delay={3}>
-              <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                <Link href="/register">
-                  <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                    Регистрация
-                  </Button>
-                </Link>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                    Открыть кабинет
-                  </Button>
-                </Link>
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                {session?.user ? (
+                  <Link href="/dashboard">
+                    <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
+                      Открыть кабинет
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/register">
+                      <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
+                        Регистрация
+                      </Button>
+                    </Link>
+                    <Link href="/login">
+                      <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
+                        Войти по email
+                      </Button>
+                    </Link>
+                  </>
+                )}
                 {supportTelegramUrl ? (
                   <Link href={supportTelegramUrl} target="_blank" rel="noreferrer">
                     <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
@@ -160,12 +207,20 @@ export default function HomePage() {
                   </Link>
                 ) : null}
               </div>
+              {!session?.user ? (
+                <div className="mt-4 max-w-sm rounded-3xl border border-white/10 bg-black/20 p-4">
+                  <p className="mb-3 text-xs uppercase tracking-[0.22em] text-zinc-500">
+                    Быстрый вход через Telegram
+                  </p>
+                  <TelegramLogin mode="login" />
+                </div>
+              ) : null}
             </ScrollReveal>
 
             <ScrollReveal>
               <PublicPricing
-                initialMonthlyPriceKopeks={PUBLIC_MONTHLY_PRICE_KOPEKS}
-                initialTrialDays={PUBLIC_TRIAL_DAYS}
+                initialMonthlyPriceKopeks={settings.pricePerDayKopeks * PUBLIC_BILLING_MONTH_DAYS}
+                initialTrialDays={settings.trialDays}
               />
             </ScrollReveal>
           </div>

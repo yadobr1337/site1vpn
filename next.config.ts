@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
   async headers() {
     return [
       {
@@ -13,16 +18,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=300, stale-while-revalidate=86400",
-          },
-        ],
-      },
-      {
-        source: "/((?!$|_next/static|_next/image|favicon.ico|logo-main-mobile.jpg).*)",
+        source: "/((?!_next/static|_next/image|favicon.ico|logo-main-mobile.jpg).*)",
         headers: [
           {
             key: "Cache-Control",

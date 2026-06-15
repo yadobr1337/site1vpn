@@ -11,6 +11,7 @@ import { requireAdmin, requireUser } from "@/lib/auth";
 import {
   adjustBalanceByAdmin,
   claimTrialDay,
+  grantDaysToAllUsers,
   runLifecycleSweep,
   setBanState,
   syncUserLifecycle,
@@ -21,6 +22,7 @@ import {
   consumeEmailCode,
   issueEmailCode,
 } from "@/lib/email-codes";
+import { broadcastTelegramMessage } from "@/lib/notifications";
 import {
   checkRemnawaveConnection,
   deleteRemoteUserDevice,
@@ -115,11 +117,11 @@ export async function claimTrialAction() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { telegramId: true },
+    select: { telegramBotConfirmedAt: true },
   });
 
-  if (!user?.telegramId) {
-    throw new Error("Telegram must be linked before claiming the trial.");
+  if (!user?.telegramBotConfirmedAt) {
+    throw new Error("Сначала подтвердите Telegram, запустив бота.");
   }
 
   await claimTrialDay(session.user.id);
@@ -163,6 +165,11 @@ export type AdminBalanceActionState = {
   message: string;
 };
 
+export type AdminOperationActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
 const initialSquadActionState: SquadActionState = {
   status: "idle",
   message: "",
@@ -170,6 +177,93 @@ const initialSquadActionState: SquadActionState = {
 
 function getActionErrorMessage(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 400) : "Неизвестная ошибка.";
+}
+
+export async function grantDaysToAllUsersAction(
+  _previousState: AdminOperationActionState,
+  formData: FormData,
+): Promise<AdminOperationActionState> {
+  await requireAdmin();
+  void _previousState;
+
+  try {
+    const days = parseRequiredPositiveInteger(formData.get("days"));
+    const description =
+      parseOptionalString(formData.get("description")) ??
+      `Подарок от 1VPN: ${days} дополнительных дней подписки.`;
+    const result = await grantDaysToAllUsers({ days, description });
+
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    return {
+      status: result.failed ? "error" : "success",
+      message: `Начислено: ${result.granted} из ${result.total}. Ошибок: ${result.failed}.`,
+    };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
+}
+
+export async function updateMaintenanceAction(
+  _previousState: AdminOperationActionState,
+  formData: FormData,
+): Promise<AdminOperationActionState> {
+  await requireAdmin();
+  void _previousState;
+
+  try {
+    const enabled = String(formData.get("enabled")) === "on";
+    const message = parseOptionalString(formData.get("message"));
+
+    await db.systemSettings.update({
+      where: { id: "default" },
+      data: {
+        maintenanceEnabled: enabled,
+        maintenanceMessage: message,
+      },
+    });
+
+    revalidatePath("/", "layout");
+    return {
+      status: "success",
+      message: enabled
+        ? "Технический режим включён. Администраторы сохраняют доступ."
+        : "Технический режим выключен. Сайт снова доступен пользователям.",
+    };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
+}
+
+export async function broadcastTelegramAction(
+  _previousState: AdminOperationActionState,
+  formData: FormData,
+): Promise<AdminOperationActionState> {
+  await requireAdmin();
+  void _previousState;
+
+  try {
+    const text = parseRequiredString(formData.get("text"));
+    if (text.length > 850) {
+      throw new Error("Текст рассылки должен быть не длиннее 850 символов.");
+    }
+
+    const photoEntry = formData.get("photo");
+    const photo =
+      photoEntry instanceof File && photoEntry.size > 0 ? photoEntry : null;
+
+    if (photo && (!photo.type.startsWith("image/") || photo.size > 7 * 1024 * 1024)) {
+      throw new Error("Загрузите изображение размером не более 7 МБ.");
+    }
+
+    const result = await broadcastTelegramMessage({ text, photo });
+    return {
+      status: result.failed ? "error" : "success",
+      message: `Доставлено: ${result.delivered} из ${result.recipients}. Ошибок: ${result.failed}.`,
+    };
+  } catch (error) {
+    return { status: "error", message: getActionErrorMessage(error) };
+  }
 }
 
 export async function restartSiteAction(

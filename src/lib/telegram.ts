@@ -136,6 +136,30 @@ export async function verifyTelegramMiniAppAuth(initData: string) {
   } as const;
 }
 
+function getSiteUrl() {
+  return env.NEXTAUTH_URL?.replace(/\/+$/, "") ?? null;
+}
+
+function decorateTelegramMessage(text: string) {
+  const content = text.replace(/^<b>1VPN<\/b>\s*\n?/, "").trim();
+  const siteUrl = getSiteUrl();
+  const footer = siteUrl ? `\n\n━━━━━━━━━━\n<a href="${siteUrl}">Открыть сайт 1VPN →</a>` : "";
+  return `✨ <b>1VPN</b>\n<i>Уведомление сервиса</i>\n\n${content}${footer}`;
+}
+
+function buildReplyMarkup() {
+  const siteUrl = getSiteUrl();
+  return siteUrl
+    ? {
+        inline_keyboard: [[{ text: "Открыть 1VPN", url: siteUrl }]],
+      }
+    : undefined;
+}
+
+export function escapeTelegramHtml(value: string) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
 export async function sendTelegramMessage(chatId: string, text: string) {
   if (!env.TELEGRAM_BOT_TOKEN) {
     return { ok: false, error: "Telegram bot token is not configured." } as const;
@@ -149,9 +173,10 @@ export async function sendTelegramMessage(chatId: string, text: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text,
+          text: decorateTelegramMessage(text),
           parse_mode: "HTML",
           disable_web_page_preview: true,
+          reply_markup: buildReplyMarkup(),
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
@@ -168,6 +193,46 @@ export async function sendTelegramMessage(chatId: string, text: string) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Telegram request failed.",
+    } as const;
+  }
+}
+
+export async function sendTelegramPhoto(chatId: string, text: string, photo: File) {
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    return { ok: false, error: "Telegram bot token is not configured." } as const;
+  }
+
+  try {
+    const body = new FormData();
+    body.set("chat_id", chatId);
+    body.set("caption", decorateTelegramMessage(text).slice(0, 1024));
+    body.set("parse_mode", "HTML");
+    body.set("photo", photo, photo.name || "broadcast.jpg");
+
+    const replyMarkup = buildReplyMarkup();
+    if (replyMarkup) {
+      body.set("reply_markup", JSON.stringify(replyMarkup));
+    }
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendPhoto`,
+      {
+        method: "POST",
+        body,
+        cache: "no-store",
+        signal: AbortSignal.timeout(20_000),
+      },
+    );
+
+    if (!response.ok) {
+      return { ok: false, error: await response.text() } as const;
+    }
+
+    return { ok: true } as const;
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Telegram photo request failed.",
     } as const;
   }
 }

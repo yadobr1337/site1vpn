@@ -167,6 +167,10 @@ sudo -u site1vpn ./deploy/publish-static-home.sh
 test -f .next/BUILD_ID && echo "Build ready"
 ```
 
+The publish script copies hashed Next.js assets for direct Nginx delivery. The
+homepage itself is served by Next.js because it must detect the current session
+and maintenance mode.
+
 For a completely new database, also run:
 
 ```bash
@@ -372,6 +376,15 @@ required `location` changes, then run:
 ```bash
 nginx -t && systemctl reload nginx
 ```
+
+Make sure the active HTTPS server block does not contain an old `location = /`
+section that serves `/var/www/site1vpn/runtime/public-home/index.html`.
+The root request must reach the normal `location /` proxy so that login-aware
+buttons and maintenance mode work.
+
+The active server block must also contain `client_max_body_size 8m;`, and its
+proxied locations should use `proxy_read_timeout 300s;` so photo broadcasts and
+bulk subscription grants can finish without Nginx closing the request.
 
 ## Backups and Logs
 

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
 import { ensureUserSquad } from "@/lib/squads";
 import { sendTelegramMessage, verifyTelegramAuth, verifyTelegramMiniAppAuth } from "@/lib/telegram";
 import { DEFAULT_HWID_DEVICE_LIMIT } from "@/lib/site";
@@ -243,6 +244,11 @@ export async function requireUser() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+
+  if (session.user.role !== Role.ADMIN && (await getSettings()).maintenanceEnabled) {
+    redirect("/maintenance");
+  }
+
   return session;
 }
 

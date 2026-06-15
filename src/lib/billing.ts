@@ -1,12 +1,14 @@
 import {
   NotificationType,
   Prisma,
+  Role,
   TransactionType,
   type Squad,
   type User,
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { notifyUserOnce } from "@/lib/notifications";
+import { escapeTelegramHtml } from "@/lib/telegram";
 import {
   deleteRemoteUser,
   disableRemoteUser,
@@ -383,6 +385,69 @@ export async function adjustBalanceByAdmin(params: {
   }
 
   return user;
+}
+
+export async function grantDaysToAllUsers(params: {
+  days: number;
+  description: string;
+}) {
+  if (!Number.isInteger(params.days) || params.days < 1 || params.days > 3650) {
+    throw new Error("Количество дней должно быть от 1 до 3650.");
+  }
+
+  const settings = await getSettings();
+  if (settings.pricePerDayKopeks <= 0) {
+    throw new Error("Сначала укажите положительную стоимость дня в настройках.");
+  }
+
+  const users = await db.user.findMany({
+    where: { role: Role.USER },
+    select: { id: true },
+  });
+  const cycleKey = `admin-grant:${Date.now()}:${params.days}`;
+  let granted = 0;
+  let failed = 0;
+
+  for (const item of users) {
+    try {
+      const user = await db.$transaction(
+        async (tx) => {
+          const settled = await settleUserBilling(item.id, tx);
+          const amountKopeks =
+            settings.pricePerDayKopeks *
+            params.days *
+            resolveHwidDeviceLimit(settled, settings.defaultHwidDeviceLimit);
+
+          return activateSubscription({
+            tx,
+            user: settled,
+            amountKopeks,
+            type: TransactionType.ADMIN_ADJUSTMENT,
+            description: params.description,
+          });
+        },
+        { timeout: 15_000, maxWait: 10_000 },
+      );
+
+      await syncUserLifecycle(user.id);
+      await notifyUserOnce({
+        user,
+        type: NotificationType.ADMIN_GRANT,
+        cycleKey,
+        message: `🎁 <b>Вам начислено ${params.days} дн.</b>\n\n${escapeTelegramHtml(params.description)}`,
+      });
+      granted += 1;
+    } catch (error) {
+      failed += 1;
+      console.error(`[admin-grant] failed for user ${item.id}`, error);
+    }
+  }
+
+  return {
+    total: users.length,
+    granted,
+    failed,
+  };
 }
 
 export async function setBanState(userId: string, isBanned: boolean) {

@@ -49,6 +49,7 @@ async function main() {
         ? `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}`
         : null,
       heroAnnouncement: "Neon privacy. Flexible balance. Instant VPN subscription.",
+      maintenanceEnabled: false,
       defaultsVersion: 1,
     },
   });

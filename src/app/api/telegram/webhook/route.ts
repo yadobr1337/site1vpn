@@ -93,6 +93,7 @@ export async function POST(request: Request) {
           telegramId: String(message.from.id),
           telegramFirstName: message.from.first_name,
           telegramUsername: message.from.username ?? null,
+          telegramBotConfirmedAt: new Date(),
         },
       }),
       db.verificationToken.delete({
