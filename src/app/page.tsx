@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PublicPricing } from "@/components/public-pricing";
 import { env } from "@/lib/env";
 import { PUBLIC_MONTHLY_PRICE_KOPEKS, PUBLIC_TRIAL_DAYS, siteConfig } from "@/lib/site";
-import { formatCurrency } from "@/lib/utils";
 
 function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   return <a {...props} />;
@@ -163,24 +163,10 @@ export default function HomePage() {
             </ScrollReveal>
 
             <ScrollReveal>
-              <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-                <Card className="hero-glow rounded-[24px] p-4 sm:rounded-[28px] sm:p-6">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-500 sm:text-xs sm:tracking-[0.3em]">
-                    Цена за месяц
-                  </p>
-                  <p className="mt-2.5 text-[2rem] font-bold leading-none text-white sm:mt-3 sm:text-3xl">
-                    {formatCurrency(PUBLIC_MONTHLY_PRICE_KOPEKS)}
-                  </p>
-                </Card>
-                <Card className="rounded-[24px] p-4 sm:rounded-[28px] sm:p-6">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-500 sm:text-xs sm:tracking-[0.3em]">
-                    Пробный период
-                  </p>
-                  <p className="mt-2.5 text-[2rem] font-bold leading-none text-white sm:mt-3 sm:text-3xl">
-                    {PUBLIC_TRIAL_DAYS} день
-                  </p>
-                </Card>
-              </div>
+              <PublicPricing
+                initialMonthlyPriceKopeks={PUBLIC_MONTHLY_PRICE_KOPEKS}
+                initialTrialDays={PUBLIC_TRIAL_DAYS}
+              />
             </ScrollReveal>
           </div>
 

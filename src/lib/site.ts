@@ -8,5 +8,7 @@ export const siteConfig = {
 export const MS_IN_DAY = 86_400_000;
 export const SUBSCRIPTION_DELETION_GRACE_HOURS = 24;
 export const DEFAULT_REMNAWAVE_EXPIRY_DAYS = 3650;
+export const DEFAULT_HWID_DEVICE_LIMIT = 1;
+export const PUBLIC_BILLING_MONTH_DAYS = 30;
 export const PUBLIC_MONTHLY_PRICE_KOPEKS = 147_000;
 export const PUBLIC_TRIAL_DAYS = 1;

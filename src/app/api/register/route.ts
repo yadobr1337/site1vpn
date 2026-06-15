@@ -9,6 +9,7 @@ import {
   issueEmailCode,
 } from "@/lib/email-codes";
 import { getSettings } from "@/lib/settings";
+import { DEFAULT_HWID_DEVICE_LIMIT } from "@/lib/site";
 import { ensureUserSquad } from "@/lib/squads";
 import { ensureUserPublicId } from "@/lib/user-identity";
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
         email: payload.email.toLowerCase(),
         passwordHash,
         role: Role.USER,
+        hwidDeviceLimit: DEFAULT_HWID_DEVICE_LIMIT,
       },
     });
 

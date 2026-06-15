@@ -34,19 +34,22 @@ async function main() {
     where: { id: "default" },
     update: {
       deletionGraceHours: 24,
+      defaultHwidDeviceLimit: 1,
+      defaultsVersion: 1,
     },
     create: {
       id: "default",
       pricePerDayKopeks: 4900,
       trialDays: 1,
       deletionGraceHours: 24,
-      defaultHwidDeviceLimit: 3,
+      defaultHwidDeviceLimit: 1,
       captchaEnabled: false,
       paymentsMode: process.env.PAYMENTS_AUTO_APPROVE === "true" ? "demo" : "manual",
       supportTelegramUrl: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
         ? `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}`
         : null,
       heroAnnouncement: "Neon privacy. Flexible balance. Instant VPN subscription.",
+      defaultsVersion: 1,
     },
   });
 

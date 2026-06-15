@@ -127,11 +127,12 @@ model SystemSettings {
   pricePerDayKopeks  Int      @default(4900)
   trialDays          Int      @default(1)
   deletionGraceHours Int      @default(24)
-  defaultHwidDeviceLimit Int  @default(3)
+  defaultHwidDeviceLimit Int  @default(1)
   captchaEnabled     Boolean  @default(false)
   paymentsMode       String   @default("demo")
   supportTelegramUrl String?
   heroAnnouncement   String?
+  defaultsVersion    Int      @default(0)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }

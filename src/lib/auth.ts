@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ensureUserSquad } from "@/lib/squads";
 import { sendTelegramMessage, verifyTelegramAuth, verifyTelegramMiniAppAuth } from "@/lib/telegram";
+import { DEFAULT_HWID_DEVICE_LIMIT } from "@/lib/site";
 import { ensureUserPublicId } from "@/lib/user-identity";
 
 async function getSessionUser(userId: string) {
@@ -72,6 +73,7 @@ async function upsertTelegramUser(params: {
               telegramUsername: params.username,
               telegramPhotoUrl: params.photoUrl,
               isEmailPlaceholder: true,
+              hwidDeviceLimit: DEFAULT_HWID_DEVICE_LIMIT,
             },
           });
 
