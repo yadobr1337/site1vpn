@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { verifyTurnstileToken } from "@/lib/captcha";
+import { verifyCaptchaToken } from "@/lib/captcha";
 import { getSettings } from "@/lib/settings";
 import { ensureUserSquad } from "@/lib/squads";
 import { sendTelegramMessage, verifyTelegramAuth, verifyTelegramMiniAppAuth } from "@/lib/telegram";
@@ -109,7 +109,7 @@ export const authOptions: NextAuthOptions = {
 
         const settings = await getSettings();
         if (settings.captchaEnabled) {
-          const captchaOk = await verifyTurnstileToken(credentials.captchaToken);
+          const captchaOk = await verifyCaptchaToken(credentials.captchaToken);
           if (!captchaOk) {
             throw new Error("CAPTCHA verification failed.");
           }

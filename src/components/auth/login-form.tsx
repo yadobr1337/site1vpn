@@ -4,7 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { TelegramLogin } from "@/components/auth/telegram-login";
-import { isTurnstileConfigured, TurnstileWidget } from "@/components/auth/turnstile-widget";
+import { HCaptchaWidget } from "@/components/auth/hcaptcha-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -14,7 +14,7 @@ export function LoginForm({ captchaEnabled }: { captchaEnabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [pending, startTransition] = useTransition();
-  const captchaRequired = captchaEnabled && isTurnstileConfigured;
+  const captchaRequired = captchaEnabled;
   const resetCaptcha = useCallback(() => setCaptchaToken(""), []);
 
   return (
@@ -61,7 +61,7 @@ export function LoginForm({ captchaEnabled }: { captchaEnabled: boolean }) {
             <label className="text-sm text-zinc-300">Пароль</label>
             <Input name="password" type="password" placeholder="••••••••" required />
           </div>
-          <TurnstileWidget
+          <HCaptchaWidget
             enabled={captchaEnabled}
             onVerify={setCaptchaToken}
             onReset={resetCaptcha}

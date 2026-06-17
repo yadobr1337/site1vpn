@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { isTurnstileConfigured, TurnstileWidget } from "@/components/auth/turnstile-widget";
+import { HCaptchaWidget } from "@/components/auth/hcaptcha-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -12,24 +12,24 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
   const [message, setMessage] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [pending, startTransition] = useTransition();
-  const captchaRequired = captchaEnabled && isTurnstileConfigured;
+  const captchaRequired = captchaEnabled;
   const resetCaptcha = useCallback(() => setCaptchaToken(""), []);
 
   return (
     <form
       className="space-y-4"
       onSubmit={(event) => {
-            event.preventDefault();
-            setError(null);
-            setMessage(null);
-            const form = event.currentTarget;
+        event.preventDefault();
+        setError(null);
+        setMessage(null);
+        const form = event.currentTarget;
 
-            if (captchaRequired && !captchaToken) {
-              setError("Пройдите CAPTCHA перед регистрацией.");
-              return;
-            }
+        if (captchaRequired && !captchaToken) {
+          setError("Пройдите CAPTCHA перед регистрацией.");
+          return;
+        }
 
-            startTransition(async () => {
+        startTransition(async () => {
           const formData = new FormData(form);
           const email = String(formData.get("email") ?? "");
           const password = String(formData.get("password") ?? "");
@@ -88,7 +88,7 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
         <Input name="password" type="password" placeholder="Минимум 8 символов" minLength={8} required />
       </div>
 
-      <TurnstileWidget enabled={captchaEnabled} onVerify={setCaptchaToken} onReset={resetCaptcha} />
+      <HCaptchaWidget enabled={captchaEnabled} onVerify={setCaptchaToken} onReset={resetCaptcha} />
 
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
       {error ? <p className="text-sm text-red-300">{error}</p> : null}

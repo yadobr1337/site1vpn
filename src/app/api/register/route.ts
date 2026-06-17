@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyTurnstileToken } from "@/lib/captcha";
+import { verifyCaptchaToken } from "@/lib/captcha";
 import { db } from "@/lib/db";
 import {
   buildEmailVerificationIdentifier,
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   if (settings.captchaEnabled) {
-    const captchaOk = await verifyTurnstileToken(payload.captchaToken);
+    const captchaOk = await verifyCaptchaToken(payload.captchaToken);
     if (!captchaOk) {
       return NextResponse.json(
         { error: "Пройдите CAPTCHA перед регистрацией." },

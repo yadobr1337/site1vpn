@@ -298,7 +298,7 @@ export default async function AdminPage({
               </label>
               <label className="flex items-center gap-3 text-sm text-zinc-300">
                 <input name="captchaEnabled" type="checkbox" defaultChecked={settings.captchaEnabled} />
-                Включить CAPTCHA
+                Включить hCaptcha
               </label>
               <PendingButton>Сохранить настройки</PendingButton>
             </form>

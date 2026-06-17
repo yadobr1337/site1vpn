@@ -5,7 +5,7 @@ import { publicEnv } from "@/lib/public-env";
 
 declare global {
   interface Window {
-    turnstile?: {
+    hcaptcha?: {
       render: (
         container: HTMLElement,
         options: {
@@ -20,20 +20,20 @@ declare global {
   }
 }
 
-export const isTurnstileConfigured = Boolean(publicEnv.TURNSTILE_SITE_KEY);
+export const isCaptchaConfigured = Boolean(publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY);
 
-type TurnstileWidgetProps = {
+type HCaptchaWidgetProps = {
   enabled: boolean;
   onVerify: (token: string) => void;
   onReset?: () => void;
 };
 
-export function TurnstileWidget({ enabled, onVerify, onReset }: TurnstileWidgetProps) {
+export function HCaptchaWidget({ enabled, onVerify, onReset }: HCaptchaWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !publicEnv.TURNSTILE_SITE_KEY || !containerRef.current) {
+    if (!enabled || !publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || !containerRef.current) {
       return;
     }
 
@@ -43,12 +43,12 @@ export function TurnstileWidget({ enabled, onVerify, onReset }: TurnstileWidgetP
       }
 
       widgetIdRef.current =
-        window.turnstile?.render(containerRef.current, {
-          sitekey: publicEnv.TURNSTILE_SITE_KEY!,
+        window.hcaptcha?.render(containerRef.current, {
+          sitekey: publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY!,
           callback: onVerify,
           "expired-callback": () => {
             onReset?.();
-            window.turnstile?.reset?.(widgetIdRef.current ?? undefined);
+            window.hcaptcha?.reset?.(widgetIdRef.current ?? undefined);
           },
           "error-callback": () => {
             onReset?.();
@@ -56,13 +56,13 @@ export function TurnstileWidget({ enabled, onVerify, onReset }: TurnstileWidgetP
         }) ?? null;
     };
 
-    if (window.turnstile) {
+    if (window.hcaptcha) {
       renderWidget();
       return;
     }
 
     const existingScript = document.querySelector<HTMLScriptElement>(
-      'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]',
+      'script[src^="https://js.hcaptcha.com/1/api.js"]',
     );
 
     if (existingScript) {
@@ -71,7 +71,7 @@ export function TurnstileWidget({ enabled, onVerify, onReset }: TurnstileWidgetP
     }
 
     const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.src = "https://js.hcaptcha.com/1/api.js?render=explicit";
     script.async = true;
     script.defer = true;
     script.addEventListener("load", renderWidget, { once: true });
@@ -88,10 +88,10 @@ export function TurnstileWidget({ enabled, onVerify, onReset }: TurnstileWidgetP
     );
   }
 
-  if (!publicEnv.TURNSTILE_SITE_KEY) {
+  if (!publicEnv.NEXT_PUBLIC_HCAPTCHA_SITE_KEY) {
     return (
       <p className="rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-400">
-        CAPTCHA отключена, пока не заполнен `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+        CAPTCHA отключена, пока не заполнен `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
       </p>
     );
   }
