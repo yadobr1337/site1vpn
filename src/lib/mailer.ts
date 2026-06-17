@@ -15,6 +15,7 @@ function getTransport() {
 
   console.info("[smtp] creating transport", {
     host: env.SMTP_HOST,
+    connectHost: env.SMTP_CONNECT_HOST ?? env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === "true",
     user: env.SMTP_USER ? `${env.SMTP_USER.slice(0, 3)}***` : null,
@@ -23,10 +24,14 @@ function getTransport() {
   });
 
   const options: SMTPTransport.Options & { family: 4 } = {
-    host: env.SMTP_HOST,
+    host: env.SMTP_CONNECT_HOST ?? env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === "true",
     family: 4,
+    name: env.SMTP_HOST,
+    tls: {
+      servername: env.SMTP_HOST,
+    },
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 15_000,
