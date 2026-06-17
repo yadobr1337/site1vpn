@@ -33,6 +33,10 @@ import {
 import { createSquad, deleteSquad, updateSquad } from "@/lib/squads";
 import { resolveUserIdentifier } from "@/lib/user-identity";
 import { SUBSCRIPTION_DELETION_GRACE_HOURS } from "@/lib/site";
+import {
+  createYooKassaPayment,
+  type YooKassaPaymentMethod,
+} from "@/lib/yookassa";
 
 function parseKopeks(value: FormDataEntryValue | null) {
   const amount = Number(String(value ?? "0").replace(",", "."));
@@ -160,6 +164,24 @@ export async function topUpBalanceAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/admin");
+}
+
+export async function createYooKassaPaymentAction(formData: FormData) {
+  const session = await requireUser();
+  const amountKopeks = parseKopeks(formData.get("amount"));
+  const method = String(formData.get("method") ?? "bank_card");
+
+  if (method !== "bank_card" && method !== "sbp") {
+    throw new Error("Unsupported payment method.");
+  }
+
+  const confirmationUrl = await createYooKassaPayment({
+    userId: session.user.id,
+    amountKopeks,
+    method: method as YooKassaPaymentMethod,
+  });
+
+  redirect(confirmationUrl);
 }
 
 export async function claimTrialAction() {

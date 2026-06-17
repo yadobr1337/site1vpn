@@ -12,10 +12,11 @@ type BillingModalProps = {
     amount: string;
     createdAt: string;
   }>;
+  paymentsEnabled: boolean;
   topUpAction: (formData: FormData) => Promise<void>;
 };
 
-export function BillingModal({ transactions, topUpAction }: BillingModalProps) {
+export function BillingModal({ transactions, paymentsEnabled, topUpAction }: BillingModalProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -79,7 +80,35 @@ export function BillingModal({ transactions, topUpAction }: BillingModalProps) {
                         type="number"
                       />
                     </label>
-                    <PendingButton className="w-full">Пополнить баланс</PendingButton>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-zinc-200 transition hover:border-cyan-300/30">
+                        <input
+                          defaultChecked
+                          name="method"
+                          type="radio"
+                          value="bank_card"
+                          className="accent-cyan-300"
+                        />
+                        Картой
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-zinc-200 transition hover:border-cyan-300/30">
+                        <input
+                          name="method"
+                          type="radio"
+                          value="sbp"
+                          className="accent-cyan-300"
+                        />
+                        СБП
+                      </label>
+                    </div>
+                    {paymentsEnabled ? (
+                      <PendingButton className="w-full">Перейти к оплате</PendingButton>
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-400">
+                        Онлайн-оплата скоро будет доступна. Если нужно пополнить баланс сейчас,
+                        напишите в поддержку.
+                      </p>
+                    )}
                   </form>
                 </div>
 

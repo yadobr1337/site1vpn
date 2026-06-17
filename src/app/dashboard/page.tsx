@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import {
   claimTrialAction,
+  createYooKassaPaymentAction,
   deleteOwnHwidDeviceAction,
-  topUpBalanceAction,
   updateOwnHwidAction,
 } from "@/app/actions";
 import { BillingModal } from "@/components/billing-modal";
@@ -21,6 +21,7 @@ import { getRemoteUserDevices } from "@/lib/remnawave";
 import { DEFAULT_SUPPORT_TELEGRAM_URL } from "@/lib/site";
 import { ensureUserPublicId } from "@/lib/user-identity";
 import { formatCurrency, formatDays } from "@/lib/utils";
+import { canUseYooKassa } from "@/lib/yookassa";
 
 function getVpnStatusLabel(
   balanceKopeks: number,
@@ -268,7 +269,8 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <BillingModal
-                topUpAction={topUpBalanceAction}
+                paymentsEnabled={canUseYooKassa()}
+                topUpAction={createYooKassaPaymentAction}
                 transactions={transactions.map((transaction) => ({
                   id: transaction.id,
                   description: transaction.description,

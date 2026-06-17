@@ -76,8 +76,30 @@ model User {
   squad         Squad?              @relation(fields: [squadId], references: [id], onDelete: SetNull)
   transactions  BalanceTransaction[]
   notifications NotificationEvent[]
+  payments      Payment[]
   accounts      Account[]
   sessions      Session[]
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  userId             String
+  provider           String   @default("yookassa")
+  providerPaymentId  String?  @unique
+  status             String   @default("PENDING")
+  method             String
+  amountKopeks       Int
+  confirmationUrl    String?
+  description        String
+  creditedAt         DateTime?
+  providerPayload    Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
 
 model Squad {
