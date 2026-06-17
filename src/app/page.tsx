@@ -185,26 +185,12 @@ export default async function HomePage() {
                     </Button>
                   </Link>
                 ) : (
-                  <>
-                    <Link href="/register">
-                      <Button size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                        Регистрация
-                      </Button>
-                    </Link>
-                    <Link href="/login">
-                      <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                        Войти по email
-                      </Button>
-                    </Link>
-                  </>
-                )}
-                {supportTelegramUrl ? (
-                  <Link href={supportTelegramUrl} target="_blank" rel="noreferrer">
-                    <Button variant="ghost" size="sm" className="h-10 px-4 sm:h-12 sm:px-6">
-                      Поддержка
+                  <Link href="/register">
+                    <Button size="sm" className="h-10 px-6 sm:h-12 sm:px-8">
+                      Попробовать
                     </Button>
                   </Link>
-                ) : null}
+                )}
               </div>
             </ScrollReveal>
 
