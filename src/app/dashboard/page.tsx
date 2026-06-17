@@ -265,7 +265,7 @@ export default async function DashboardPage() {
                   Пополнение
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-zinc-400">
-                  Все пополнения и история операций вынесены в отдельное окно.
+                  Пополняйте баланс и следите за всеми операциями в удобном отдельном разделе.
                 </p>
               </div>
               <BillingModal
