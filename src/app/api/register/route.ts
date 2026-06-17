@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -8,6 +7,7 @@ import {
   buildEmailVerificationIdentifier,
   issueEmailCode,
 } from "@/lib/email-codes";
+import { hashPassword } from "@/lib/passwords";
 import { getSettings } from "@/lib/settings";
 import { DEFAULT_HWID_DEVICE_LIMIT } from "@/lib/site";
 import { ensureUserSquad } from "@/lib/squads";
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email is already registered." }, { status: 409 });
   }
 
-  const passwordHash = await bcrypt.hash(payload.password, 12);
+  const passwordHash = await hashPassword(payload.password);
 
   const user = await db.$transaction(async (tx) => {
     const created = await tx.user.create({

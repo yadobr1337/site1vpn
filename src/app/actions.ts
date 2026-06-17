@@ -1,12 +1,12 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { hashPassword } from "@/lib/passwords";
 import { requireAdmin, requireUser } from "@/lib/auth";
 import {
   adjustBalanceByAdmin,
@@ -696,7 +696,7 @@ export async function updateOwnPasswordAction(formData: FormData) {
   await db.user.update({
     where: { id: session.user.id },
     data: {
-      passwordHash: await bcrypt.hash(newPassword, 12),
+      passwordHash: await hashPassword(newPassword),
     },
   });
 

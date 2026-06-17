@@ -1,10 +1,10 @@
-import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { verifyPassword } from "@/lib/passwords";
 import { getSettings } from "@/lib/settings";
 import { ensureUserSquad } from "@/lib/squads";
 import { sendTelegramMessage, verifyTelegramAuth, verifyTelegramMiniAppAuth } from "@/lib/telegram";
@@ -113,7 +113,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Account not found.");
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const isValid = await verifyPassword(credentials.password, user.passwordHash);
         if (!isValid) {
           throw new Error("Invalid password.");
         }

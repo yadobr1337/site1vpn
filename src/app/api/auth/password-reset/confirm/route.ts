@@ -1,8 +1,8 @@
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildPasswordResetIdentifier, consumeEmailCode } from "@/lib/email-codes";
+import { hashPassword } from "@/lib/passwords";
 
 const schema = z.object({
   email: z.string().email(),
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   await db.user.update({
     where: { id: user.id },
     data: {
-      passwordHash: await bcrypt.hash(payload.password, 12),
+      passwordHash: await hashPassword(payload.password),
     },
   });
 
