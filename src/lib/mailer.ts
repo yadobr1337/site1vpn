@@ -1,6 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { env } from "@/lib/env";
 
 function isMailerConfigured() {
@@ -12,10 +13,20 @@ function getTransport() {
     throw new Error("SMTP is not configured.");
   }
 
-  return nodemailer.createTransport({
+  console.info("[smtp] creating transport", {
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === "true",
+    user: env.SMTP_USER ? `${env.SMTP_USER.slice(0, 3)}***` : null,
+    from: env.SMTP_FROM_EMAIL,
+    family: 4,
+  });
+
+  const options: SMTPTransport.Options & { family: 4 } = {
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE === "true",
+    family: 4,
     connectionTimeout: 10_000,
     greetingTimeout: 10_000,
     socketTimeout: 15_000,
@@ -26,7 +37,9 @@ function getTransport() {
             pass: env.SMTP_PASS,
           }
         : undefined,
-  });
+  };
+
+  return nodemailer.createTransport(options);
 }
 
 export async function sendEmail(params: {
