@@ -13,6 +13,11 @@ function getTransport() {
     throw new Error("SMTP is not configured.");
   }
 
+  const family =
+    env.SMTP_IP_FAMILY && env.SMTP_IP_FAMILY !== "auto"
+      ? Number(env.SMTP_IP_FAMILY)
+      : undefined;
+
   console.info("[smtp] creating transport", {
     host: env.SMTP_HOST,
     connectHost: env.SMTP_CONNECT_HOST ?? env.SMTP_HOST,
@@ -20,14 +25,14 @@ function getTransport() {
     secure: env.SMTP_SECURE === "true",
     user: env.SMTP_USER ? `${env.SMTP_USER.slice(0, 3)}***` : null,
     from: env.SMTP_FROM_EMAIL,
-    family: 4,
+    family: family ?? "auto",
   });
 
-  const options: SMTPTransport.Options & { family: 4 } = {
+  const options: SMTPTransport.Options & { family?: 4 | 6 } = {
     host: env.SMTP_CONNECT_HOST ?? env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === "true",
-    family: 4,
+    family: family as 4 | 6 | undefined,
     name: env.SMTP_HOST,
     tls: {
       servername: env.SMTP_HOST,
