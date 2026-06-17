@@ -11,7 +11,7 @@ function mapMailError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("SMTP is not configured")) {
-    return "SMTP не настроен.";
+    return "Не удалось отправить код. Попробуйте позже.";
   }
 
   if (
@@ -20,10 +20,10 @@ function mapMailError(error: unknown) {
     message.includes("Username and Password not accepted") ||
     message.toLowerCase().includes("auth")
   ) {
-    return "SMTP отклонил авторизацию.";
+    return "Не удалось отправить код. Попробуйте позже.";
   }
 
-  return "Не удалось отправить письмо.";
+  return "Не удалось отправить код. Попробуйте позже.";
 }
 
 export async function POST(request: Request) {

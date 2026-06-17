@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { HCaptchaWidget } from "@/components/auth/hcaptcha-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
           setMessage(
             payload.emailCodeSent
               ? "Аккаунт создан. Код подтверждения email уже отправлен."
-              : "Аккаунт создан. Подключите SMTP, чтобы включить email-коды.",
+              : "Аккаунт создан. Подтверждение email можно будет выполнить позже.",
           );
           window.location.href = "/dashboard";
         });
@@ -82,7 +83,7 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
       </div>
       <div className="space-y-2">
         <label className="text-sm text-zinc-300">Пароль</label>
-        <Input name="password" type="password" placeholder="Минимум 8 символов" minLength={8} required />
+        <PasswordInput name="password" placeholder="Минимум 8 символов" minLength={8} required />
       </div>
 
       <HCaptchaWidget

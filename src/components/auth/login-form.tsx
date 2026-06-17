@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { TelegramLogin } from "@/components/auth/telegram-login";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm() {
   const [resetMode, setResetMode] = useState(false);
@@ -48,7 +49,7 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <label className="text-sm text-zinc-300">Пароль</label>
-            <Input name="password" type="password" placeholder="••••••••" required />
+            <PasswordInput name="password" placeholder="••••••••" required />
           </div>
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           <button
@@ -134,9 +135,8 @@ export function LoginForm() {
                     body: JSON.stringify({ email }),
                   });
 
-                  const payload = (await response.json()) as { error?: string };
                   if (!response.ok) {
-                    setError(payload.error ?? "Не удалось отправить код.");
+                    setError("Не удалось отправить код. Попробуйте позже.");
                     return;
                   }
 
@@ -150,7 +150,7 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <label className="text-sm text-zinc-300">Новый пароль</label>
-            <Input name="password" type="password" placeholder="Новый пароль" required />
+            <PasswordInput name="password" placeholder="Новый пароль" required />
           </div>
           {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
           {error ? <p className="text-sm text-red-300">{error}</p> : null}

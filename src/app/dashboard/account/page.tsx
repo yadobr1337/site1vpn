@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PendingButton } from "@/components/ui/pending-button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -27,19 +28,10 @@ function getEmailStatusMessage(status?: string) {
     case "verified":
       return { tone: "success", text: "Email подтвержден." };
     case "smtp_missing":
-      return { tone: "error", text: "SMTP не настроен. Заполните SMTP-переменные в .env." };
     case "smtp_auth_error":
-      return {
-        tone: "error",
-        text: "SMTP отклонил авторизацию. Для Яндекса обычно нужен пароль приложения.",
-      };
     case "smtp_connection_error":
-      return {
-        tone: "error",
-        text: "Не удалось подключиться к SMTP. Проверьте SMTP_HOST, порт, SSL и доступ сервера к почте.",
-      };
     case "send_error":
-      return { tone: "error", text: "Не удалось отправить письмо. Проверьте SMTP-настройки." };
+      return null;
     case "email_exists":
       return { tone: "error", text: "Этот email уже используется другим аккаунтом." };
     case "invalid_code":
@@ -58,19 +50,10 @@ function getPasswordStatusMessage(status?: string) {
     case "updated":
       return { tone: "success", text: "Пароль обновлён." };
     case "smtp_missing":
-      return { tone: "error", text: "SMTP не настроен. Заполните SMTP-переменные в .env." };
     case "smtp_auth_error":
-      return {
-        tone: "error",
-        text: "SMTP отклонил авторизацию. Для Яндекса обычно нужен пароль приложения.",
-      };
     case "smtp_connection_error":
-      return {
-        tone: "error",
-        text: "Не удалось подключиться к SMTP. Проверьте SMTP_HOST, порт, SSL и доступ сервера к почте.",
-      };
     case "send_error":
-      return { tone: "error", text: "Не удалось отправить письмо. Проверьте SMTP-настройки." };
+      return null;
     case "invalid_code":
       return { tone: "error", text: "Неверный или просроченный код для смены пароля." };
     case "weak_password":
@@ -234,11 +217,7 @@ export default async function DashboardAccountPage({
               </label>
               <label className="grid gap-2 text-sm text-zinc-300">
                 Новый пароль
-                <input
-                  className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                  name="newPassword"
-                  type="password"
-                />
+                <PasswordInput name="newPassword" />
               </label>
               <PendingButton>Сохранить пароль</PendingButton>
             </form>
