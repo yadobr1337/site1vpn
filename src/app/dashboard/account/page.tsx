@@ -32,6 +32,11 @@ function getEmailStatusMessage(status?: string) {
         tone: "error",
         text: "SMTP отклонил авторизацию. Для Яндекса обычно нужен пароль приложения.",
       };
+    case "smtp_connection_error":
+      return {
+        tone: "error",
+        text: "Не удалось подключиться к SMTP. Проверьте SMTP_HOST, порт, SSL и доступ сервера к почте.",
+      };
     case "send_error":
       return { tone: "error", text: "Не удалось отправить письмо. Проверьте SMTP-настройки." };
     case "email_exists":
@@ -57,6 +62,11 @@ function getPasswordStatusMessage(status?: string) {
       return {
         tone: "error",
         text: "SMTP отклонил авторизацию. Для Яндекса обычно нужен пароль приложения.",
+      };
+    case "smtp_connection_error":
+      return {
+        tone: "error",
+        text: "Не удалось подключиться к SMTP. Проверьте SMTP_HOST, порт, SSL и доступ сервера к почте.",
       };
     case "send_error":
       return { tone: "error", text: "Не удалось отправить письмо. Проверьте SMTP-настройки." };

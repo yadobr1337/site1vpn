@@ -79,9 +79,24 @@ function parseOptionalString(value: FormDataEntryValue | null) {
 
 function redirectByMailError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
 
   if (message.includes("SMTP is not configured")) {
     redirect("/dashboard/account?emailStatus=smtp_missing");
+  }
+
+  console.error("[email-verification] failed to send code", error);
+
+  if (
+    code.includes("ETIMEDOUT") ||
+    code.includes("ESOCKET") ||
+    code.includes("ECONNECTION") ||
+    message.toLowerCase().includes("timeout") ||
+    message.toLowerCase().includes("timed out") ||
+    message.toLowerCase().includes("greeting never received") ||
+    message.toLowerCase().includes("connection")
+  ) {
+    redirect("/dashboard/account?emailStatus=smtp_connection_error");
   }
 
   if (
@@ -98,9 +113,24 @@ function redirectByMailError(error: unknown) {
 
 function redirectByPasswordMailError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
 
   if (message.includes("SMTP is not configured")) {
     redirect("/dashboard/account?passwordStatus=smtp_missing");
+  }
+
+  console.error("[password-change] failed to send code", error);
+
+  if (
+    code.includes("ETIMEDOUT") ||
+    code.includes("ESOCKET") ||
+    code.includes("ECONNECTION") ||
+    message.toLowerCase().includes("timeout") ||
+    message.toLowerCase().includes("timed out") ||
+    message.toLowerCase().includes("greeting never received") ||
+    message.toLowerCase().includes("connection")
+  ) {
+    redirect("/dashboard/account?passwordStatus=smtp_connection_error");
   }
 
   if (

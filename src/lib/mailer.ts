@@ -16,6 +16,9 @@ function getTransport() {
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE === "true",
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     auth:
       env.SMTP_USER && env.SMTP_PASS
         ? {
@@ -34,6 +37,7 @@ export async function sendEmail(params: {
 }) {
   const transport = getTransport();
 
+  await transport.verify();
   await transport.sendMail({
     from: env.SMTP_FROM_NAME
       ? `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_EMAIL}>`
