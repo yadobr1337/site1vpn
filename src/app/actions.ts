@@ -332,21 +332,27 @@ export async function restartSiteAction(
   void _previousState;
 
   const restartRequestPath = "/var/www/site1vpn/runtime/restart.request";
+  let requestFileError: string | null = null;
 
   try {
     await mkdir(dirname(restartRequestPath), { recursive: true });
     await writeFile(restartRequestPath, new Date().toISOString(), "utf8");
-
-    return {
-      status: "success",
-      message: "Запрос отправлен. Сайт перезапускается и снова откроется через несколько секунд.",
-    };
   } catch (error) {
-    return {
-      status: "error",
-      message: `Не удалось отправить запрос перезапуска: ${getActionErrorMessage(error)}`,
-    };
+    requestFileError = getActionErrorMessage(error);
   }
+
+  if (process.env.NODE_ENV === "production") {
+    setTimeout(() => {
+      process.kill(process.pid, "SIGTERM");
+    }, 1_500);
+  }
+
+  return {
+    status: "success",
+    message: requestFileError
+      ? `Перезапуск процесса запланирован. Резервный systemd-запрос не создан: ${requestFileError}`
+      : "Запрос отправлен. Сайт перезапускается и снова откроется через несколько секунд.",
+  };
 }
 
 export async function createSquadAction(

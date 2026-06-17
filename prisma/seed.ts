@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { PrismaClient, Role } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const DEFAULT_SUPPORT_TELEGRAM_URL = "https://t.me/the1vpnsupport";
 
 function randomNumericId(length = 8) {
   let value = "";
@@ -35,6 +36,7 @@ async function main() {
     update: {
       deletionGraceHours: 24,
       defaultHwidDeviceLimit: 1,
+      supportTelegramUrl: DEFAULT_SUPPORT_TELEGRAM_URL,
       defaultsVersion: 1,
     },
     create: {
@@ -45,9 +47,7 @@ async function main() {
       defaultHwidDeviceLimit: 1,
       captchaEnabled: false,
       paymentsMode: process.env.PAYMENTS_AUTO_APPROVE === "true" ? "demo" : "manual",
-      supportTelegramUrl: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
-        ? `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}`
-        : null,
+      supportTelegramUrl: DEFAULT_SUPPORT_TELEGRAM_URL,
       heroAnnouncement: "Neon privacy. Flexible balance. Instant VPN subscription.",
       maintenanceEnabled: false,
       defaultsVersion: 1,

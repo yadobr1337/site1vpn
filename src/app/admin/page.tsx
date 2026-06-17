@@ -266,7 +266,7 @@ export default async function AdminPage({
                   type="number"
                 />
                 <span className="text-xs text-zinc-500">
-                  Ссылка и пользователь в скваде удаляются через 24 часа после окончания подписки.
+                  Пополните баланс в течение 24 часов, чтобы сохранить доступ и данные подписки.
                 </span>
               </label>
               <label className="grid gap-2 text-sm text-zinc-300">

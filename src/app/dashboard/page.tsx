@@ -18,6 +18,7 @@ import { getUserOverview } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { getRemoteUserDevices } from "@/lib/remnawave";
+import { DEFAULT_SUPPORT_TELEGRAM_URL } from "@/lib/site";
 import { ensureUserPublicId } from "@/lib/user-identity";
 import { formatCurrency, formatDays } from "@/lib/utils";
 
@@ -126,7 +127,9 @@ export default async function DashboardPage() {
     overview.user.pendingEmail || (hasRealEmail && !overview.user.emailVerified),
   );
   const supportTelegramUrl =
-    env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? overview.settings.supportTelegramUrl ?? null;
+    env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ??
+    overview.settings.supportTelegramUrl ??
+    DEFAULT_SUPPORT_TELEGRAM_URL;
 
   return (
     <main className="dashboard-shell min-h-screen px-4 py-4 sm:px-6 sm:py-6">
@@ -281,11 +284,10 @@ export default async function DashboardPage() {
             <div className="space-y-4">
               <div>
                 <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-white">
-                  HWID и лимиты
+                  Устройства и лимиты
                 </h2>
                 <p className="mt-2 text-sm leading-7 text-zinc-400">
-                  Настройте лимит устройств и при необходимости удалите конкретное устройство из
-                  панели.
+                  Управляйте количеством подключённых устройств и отключайте ненужные.
                 </p>
               </div>
 

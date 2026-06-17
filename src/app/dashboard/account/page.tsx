@@ -15,6 +15,7 @@ import { PendingButton } from "@/components/ui/pending-button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { DEFAULT_SUPPORT_TELEGRAM_URL } from "@/lib/site";
 import { ensureUserPublicId } from "@/lib/user-identity";
 
 function getEmailStatusMessage(status?: string) {
@@ -101,6 +102,7 @@ export default async function DashboardAccountPage({
     : params.passwordStatus;
   const statusMessage = getEmailStatusMessage(emailStatus);
   const passwordStatusMessage = getPasswordStatusMessage(passwordStatus);
+  const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? DEFAULT_SUPPORT_TELEGRAM_URL;
 
   const [user, publicId] = await Promise.all([
     db.user.findUnique({
@@ -277,8 +279,8 @@ export default async function DashboardAccountPage({
           <Card>
             <Badge>Support</Badge>
             <div className="mt-4 flex flex-wrap gap-3">
-              {env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ? (
-                <Link href={env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer">
+              {supportTelegramUrl ? (
+                <Link href={supportTelegramUrl} target="_blank" rel="noreferrer">
                   <Button>Поддержка в Telegram</Button>
                 </Link>
               ) : null}

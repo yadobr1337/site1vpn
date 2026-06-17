@@ -588,7 +588,7 @@ export async function syncUserLifecycle(userId: string) {
         user: managed,
         type: NotificationType.EXPIRED,
         cycleKey: `${managed.billingCycle}:expired`,
-        message: `<b>1VPN</b>\nПодписка закончилась, остаток: <b>0 дней</b>.\nСсылка и пользователь в скваде будут удалены через <b>${SUBSCRIPTION_DELETION_GRACE_HOURS} часа</b>, если баланс не пополнить.`,
+        message: `<b>1VPN</b>\n⚠️ <b>Доступ скоро будет удалён</b>\n\nНа вашем балансе недостаточно средств. Пополните его в течение <b>${SUBSCRIPTION_DELETION_GRACE_HOURS} часов</b>, чтобы сохранить подписку.`,
       });
       await disableRemoteUser(managed.remnawaveUserUuid);
     }

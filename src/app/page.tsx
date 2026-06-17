@@ -6,7 +6,13 @@ import { PublicPricing } from "@/components/public-pricing";
 import { getAuthSession } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
-import { PUBLIC_BILLING_MONTH_DAYS, siteConfig } from "@/lib/site";
+import {
+  DEFAULT_OFFER_URL,
+  DEFAULT_PRIVACY_URL,
+  DEFAULT_SUPPORT_TELEGRAM_URL,
+  PUBLIC_BILLING_MONTH_DAYS,
+  siteConfig,
+} from "@/lib/site";
 
 function Link(props: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   return <a {...props} />;
@@ -98,7 +104,9 @@ export default async function HomePage() {
     );
   }
 
-  const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? null;
+  const offerUrl = env.NEXT_PUBLIC_OFFER_URL ?? DEFAULT_OFFER_URL;
+  const privacyUrl = env.NEXT_PUBLIC_PRIVACY_URL ?? DEFAULT_PRIVACY_URL;
+  const supportTelegramUrl = env.NEXT_PUBLIC_SUPPORT_TELEGRAM_URL ?? DEFAULT_SUPPORT_TELEGRAM_URL;
 
   return (
     <main className="grid-overlay overflow-hidden">
@@ -202,7 +210,7 @@ export default async function HomePage() {
             </ScrollReveal>
           </div>
 
-          <div className="mobile-lite-hidden order-2">
+          <div className="order-2">
             <ScrollReveal delay={1}>
               <div className="hero-glow mx-auto max-w-[440px] sm:max-w-[560px]">
                 <Card className="overflow-hidden rounded-[28px] p-0 sm:rounded-[32px]">
@@ -232,7 +240,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="mobile-lite-hidden deferred-section pb-6 sm:pb-8">
+        <section className="deferred-section pb-6 sm:pb-8">
           <ScrollReveal>
             <div className="mb-4 flex items-end justify-between gap-4 sm:mb-5">
               <div>
@@ -271,15 +279,15 @@ export default async function HomePage() {
                 Все нужные ссылки под рукой
               </h2>
               <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                {env.NEXT_PUBLIC_OFFER_URL ? (
-                  <Link href={env.NEXT_PUBLIC_OFFER_URL} target="_blank" rel="noreferrer">
+                {offerUrl ? (
+                  <Link href={offerUrl} target="_blank" rel="noreferrer">
                     <Button variant="ghost" size="sm" className="px-4">
                       Оферта
                     </Button>
                   </Link>
                 ) : null}
-                {env.NEXT_PUBLIC_PRIVACY_URL ? (
-                  <Link href={env.NEXT_PUBLIC_PRIVACY_URL} target="_blank" rel="noreferrer">
+                {privacyUrl ? (
+                  <Link href={privacyUrl} target="_blank" rel="noreferrer">
                     <Button variant="ghost" size="sm" className="px-4">
                       Политика конфиденциальности
                     </Button>

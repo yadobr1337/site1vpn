@@ -12,3 +12,8 @@ export const DEFAULT_HWID_DEVICE_LIMIT = 1;
 export const PUBLIC_BILLING_MONTH_DAYS = 30;
 export const PUBLIC_MONTHLY_PRICE_KOPEKS = 147_000;
 export const PUBLIC_TRIAL_DAYS = 1;
+export const DEFAULT_OFFER_URL =
+  "https://telegra.ph/PUBLICHNAYA-OFERTA-na-okazanie-uslug-po-predostavleniyu-dostupa-k-servisu-1VPN-06-17";
+export const DEFAULT_PRIVACY_URL =
+  "https://telegra.ph/POLITIKA-KONFIDENCIALNOSTI-i-obrabotki-personalnyh-dannyh-servisa-1VPN-06-17";
+export const DEFAULT_SUPPORT_TELEGRAM_URL = "https://t.me/the1vpnsupport";

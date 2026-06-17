@@ -33,7 +33,7 @@ export function DeviceStepperForm({ action, currentValue }: DeviceStepperFormPro
           +
         </button>
       </div>
-      <PendingButton variant="ghost">Сохранить устройства</PendingButton>
+      <PendingButton variant="ghost">Сохранить изменения</PendingButton>
     </form>
   );
 }
