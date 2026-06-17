@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { resendOwnEmailVerificationAction, updateOwnEmailAction, updateOwnPasswordAction, verifyOwnEmailAction } from "@/app/actions";
+import {
+  resendOwnEmailVerificationAction,
+  sendOwnPasswordChangeCodeAction,
+  updateOwnEmailAction,
+  updateOwnPasswordAction,
+  verifyOwnEmailAction,
+} from "@/app/actions";
 import { TelegramBotLink } from "@/components/telegram-bot-link";
 import { LogoutButton } from "@/components/logout-button";
 import { Badge } from "@/components/ui/badge";
@@ -39,9 +45,37 @@ function getEmailStatusMessage(status?: string) {
   }
 }
 
+function getPasswordStatusMessage(status?: string) {
+  switch (status) {
+    case "sent":
+      return { tone: "success", text: "Код для смены пароля отправлен на email." };
+    case "updated":
+      return { tone: "success", text: "Пароль обновлён." };
+    case "smtp_missing":
+      return { tone: "error", text: "SMTP не настроен. Заполните SMTP-переменные в .env." };
+    case "smtp_auth_error":
+      return {
+        tone: "error",
+        text: "SMTP отклонил авторизацию. Для Яндекса обычно нужен пароль приложения.",
+      };
+    case "send_error":
+      return { tone: "error", text: "Не удалось отправить письмо. Проверьте SMTP-настройки." };
+    case "invalid_code":
+      return { tone: "error", text: "Неверный или просроченный код для смены пароля." };
+    case "weak_password":
+      return { tone: "error", text: "Новый пароль должен быть от 8 до 64 символов." };
+    case "no_verified_email":
+      return { tone: "error", text: "Сначала подтвердите email, чтобы получать коды." };
+    case "user_not_found":
+      return { tone: "error", text: "Аккаунт не найден. Войдите заново." };
+    default:
+      return null;
+  }
+}
+
 type SearchParamsInput =
-  | Promise<{ emailStatus?: string | string[] }>
-  | { emailStatus?: string | string[] }
+  | Promise<{ emailStatus?: string | string[]; passwordStatus?: string | string[] }>
+  | { emailStatus?: string | string[]; passwordStatus?: string | string[] }
   | undefined;
 
 export default async function DashboardAccountPage({
@@ -52,7 +86,11 @@ export default async function DashboardAccountPage({
   const session = await requireUser();
   const params = searchParams ? await searchParams : {};
   const emailStatus = Array.isArray(params.emailStatus) ? params.emailStatus[0] : params.emailStatus;
+  const passwordStatus = Array.isArray(params.passwordStatus)
+    ? params.passwordStatus[0]
+    : params.passwordStatus;
   const statusMessage = getEmailStatusMessage(emailStatus);
+  const passwordStatusMessage = getPasswordStatusMessage(passwordStatus);
 
   const [user, publicId] = await Promise.all([
     db.user.findUnique({
@@ -62,7 +100,6 @@ export default async function DashboardAccountPage({
         email: true,
         pendingEmail: true,
         emailVerified: true,
-        passwordHash: true,
         telegramId: true,
         telegramUsername: true,
         telegramBotConfirmedAt: true,
@@ -96,17 +133,18 @@ export default async function DashboardAccountPage({
           </div>
         </header>
 
-        {statusMessage ? (
+        {[statusMessage, passwordStatusMessage].filter(Boolean).map((message) => (
           <Card
+            key={message!.text}
             className={
-              statusMessage.tone === "success"
+              message!.tone === "success"
                 ? "border-emerald-400/20 bg-emerald-500/10"
                 : "border-red-400/20 bg-red-500/10"
             }
           >
-            <p className="text-sm text-white">{statusMessage.text}</p>
+            <p className="text-sm text-white">{message!.text}</p>
           </Card>
-        ) : null}
+        ))}
 
         <section className="grid gap-4 lg:grid-cols-2">
           <Card className="space-y-5">
@@ -165,19 +203,23 @@ export default async function DashboardAccountPage({
             <Badge>Password</Badge>
             <h2 className="text-2xl font-bold uppercase tracking-[0.08em] text-white">Пароль</h2>
             <p className="text-sm leading-7 text-zinc-400">
-              Если забудете пароль, восстановить его можно кодом из email на странице входа.
+              Пароль меняется через одноразовый код. Код приходит на подтверждённую почту и
+              действует 10 минут.
             </p>
+            <form action={sendOwnPasswordChangeCodeAction}>
+              <PendingButton variant="ghost">Отправить код для смены пароля</PendingButton>
+            </form>
             <form action={updateOwnPasswordAction} className="space-y-4">
-              {user.passwordHash ? (
-                <label className="grid gap-2 text-sm text-zinc-300">
-                  Текущий пароль
-                  <input
-                    className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
-                    name="currentPassword"
-                    type="password"
-                  />
-                </label>
-              ) : null}
+              <label className="grid gap-2 text-sm text-zinc-300">
+                Код из письма
+                <input
+                  className="h-12 rounded-2xl border border-white/10 bg-black/30 px-4 text-white"
+                  inputMode="numeric"
+                  name="code"
+                  placeholder="123456"
+                  type="text"
+                />
+              </label>
               <label className="grid gap-2 text-sm text-zinc-300">
                 Новый пароль
                 <input

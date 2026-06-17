@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MaintenanceScreen } from "@/components/maintenance-screen";
 import { PublicPricing } from "@/components/public-pricing";
-import { TelegramLogin } from "@/components/auth/telegram-login";
 import { getAuthSession } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
@@ -207,14 +206,6 @@ export default async function HomePage() {
                   </Link>
                 ) : null}
               </div>
-              {!session?.user ? (
-                <div className="mt-4 max-w-sm rounded-3xl border border-white/10 bg-black/20 p-4">
-                  <p className="mb-3 text-xs uppercase tracking-[0.22em] text-zinc-500">
-                    Быстрый вход через Telegram
-                  </p>
-                  <TelegramLogin mode="login" />
-                </div>
-              ) : null}
             </ScrollReveal>
 
             <ScrollReveal>

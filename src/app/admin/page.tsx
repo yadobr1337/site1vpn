@@ -59,6 +59,46 @@ function getTransactionLabel(type: TransactionType) {
   }
 }
 
+function getPeriodStart(days: number) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - (days - 1));
+  return date;
+}
+
+async function getAdminStats(periodStart: Date) {
+  const [newUsers, buyers] = await Promise.all([
+    db.user.count({
+      where: {
+        role: Role.USER,
+        createdAt: {
+          gte: periodStart,
+        },
+      },
+    }),
+    db.balanceTransaction.groupBy({
+      by: ["userId"],
+      where: {
+        type: TransactionType.TOPUP,
+        amountKopeks: {
+          gt: 0,
+        },
+        createdAt: {
+          gte: periodStart,
+        },
+        user: {
+          role: Role.USER,
+        },
+      },
+    }),
+  ]);
+
+  return {
+    newUsers,
+    buyers: buyers.length,
+  };
+}
+
 type SearchParamsInput = Promise<{ user?: string | string[] }> | { user?: string | string[] } | undefined;
 
 export default async function AdminPage({
@@ -73,7 +113,7 @@ export default async function AdminPage({
   const userQuery = Array.isArray(params.user) ? params.user[0] : params.user;
   const normalizedQuery = userQuery?.trim();
 
-  const [settings, userStats, squads, searchedUser, remnawaveStatus] = await Promise.all([
+  const [settings, userStats, squads, searchedUser, remnawaveStatus, todayStats, weekStats, monthStats] = await Promise.all([
     getSettings(),
     db.user.aggregate({
       _count: {
@@ -113,6 +153,9 @@ export default async function AdminPage({
         })
       : Promise.resolve(null),
     checkRemnawaveConnection(),
+    getAdminStats(getPeriodStart(1)),
+    getAdminStats(getPeriodStart(7)),
+    getAdminStats(getPeriodStart(30)),
   ]);
 
   const totalBalance = userStats._sum.balanceKopeks ?? 0;
@@ -161,6 +204,28 @@ export default async function AdminPage({
               {formatCurrency(settings.pricePerDayKopeks)}
             </p>
           </Card>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-3">
+          {[
+            { label: "Сегодня", stats: todayStats },
+            { label: "За 7 дней", stats: weekStats },
+            { label: "За 30 дней", stats: monthStats },
+          ].map((item) => (
+            <Card key={item.label} className="border-cyan-400/15 bg-cyan-500/[0.03]">
+              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">{item.label}</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-sm text-zinc-400">Новые пользователи</p>
+                  <p className="mt-2 text-3xl font-bold text-white">{item.stats.newUsers}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-zinc-400">Покупатели</p>
+                  <p className="mt-2 text-3xl font-bold text-white">{item.stats.buyers}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
         </section>
 
         <AdminOperations

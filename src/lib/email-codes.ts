@@ -100,6 +100,10 @@ export function buildPasswordResetIdentifier(email: string) {
   return `reset-password:${normalizeEmail(email)}`;
 }
 
+export function buildPasswordChangeIdentifier(userId: string) {
+  return `change-password:${userId}`;
+}
+
 export function buildEmailVerificationIdentifier(userId: string, email: string) {
   return `verify-email:${userId}:${normalizeEmail(email)}`;
 }

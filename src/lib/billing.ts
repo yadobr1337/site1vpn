@@ -413,10 +413,7 @@ export async function grantDaysToAllUsers(params: {
       const user = await db.$transaction(
         async (tx) => {
           const settled = await settleUserBilling(item.id, tx);
-          const amountKopeks =
-            settings.pricePerDayKopeks *
-            params.days *
-            resolveHwidDeviceLimit(settled, settings.defaultHwidDeviceLimit);
+          const amountKopeks = settings.pricePerDayKopeks * params.days;
 
           return activateSubscription({
             tx,

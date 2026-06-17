@@ -111,10 +111,10 @@ export function AdminOperations({
         <Card className="border-cyan-400/20 bg-cyan-500/[0.04]">
           <Gift className="h-6 w-6 text-cyan-200" />
           <h2 className="mt-4 text-xl font-bold uppercase tracking-[0.06em] text-white">
-            Начислить дни
+            Пополнить всем
           </h2>
           <p className="mt-2 min-h-14 text-sm leading-6 text-zinc-400">
-            Добавить одинаковое количество дней подписки всем пользователям.
+            Добавить каждому пользователю баланс на стоимость указанного количества дней.
           </p>
           <Button className="mt-5" onClick={() => setOperation("days")}>
             Открыть
@@ -127,7 +127,7 @@ export function AdminOperations({
             Технический режим
           </h2>
           <p className="mt-2 min-h-14 text-sm leading-6 text-zinc-400">
-            Закрыть сайт для пользователей. Администраторы сохранят доступ.
+            Временно закрыть сайт для всех пользователей, кроме администратора.
           </p>
           <Button className="mt-5" variant="ghost" onClick={() => setOperation("maintenance")}>
             {maintenanceEnabled ? "Сейчас включён" : "Настроить"}
@@ -140,7 +140,7 @@ export function AdminOperations({
             Telegram-рассылка
           </h2>
           <p className="mt-2 min-h-14 text-sm leading-6 text-zinc-400">
-            Отправить всем подтвердившим бота красивое сообщение с фотографией.
+            Отправить сообщение всем аккаунтам, у которых привязан Telegram ID.
           </p>
           <Button className="mt-5" variant="ghost" onClick={() => setOperation("broadcast")}>
             Создать рассылку
@@ -151,7 +151,7 @@ export function AdminOperations({
       {mounted && operation === "days" ? (
         <OperationModal
           title="Начислить дни всем"
-          description="Сумма рассчитывается отдельно для каждого пользователя с учётом его количества устройств."
+          description="Сайт добавит каждому пользователю баланс: количество дней × текущая цена за 1 день. Количество устройств здесь не умножается."
           onClose={() => setOperation(null)}
         >
           <form action={daysAction} className="space-y-4">
@@ -183,7 +183,7 @@ export function AdminOperations({
       {mounted && operation === "maintenance" ? (
         <OperationModal
           title="Технический режим"
-          description="При включении пользователи увидят страницу технических работ. Войти и управлять сайтом смогут только администраторы."
+          description="При включении обычные пользователи увидят страницу технических работ. Администратор сможет входить, менять настройки и выключить режим."
           onClose={() => setOperation(null)}
         >
           <form action={maintenanceAction} className="space-y-4">
@@ -209,7 +209,7 @@ export function AdminOperations({
       {mounted && operation === "broadcast" ? (
         <OperationModal
           title="Telegram-рассылка"
-          description="Сообщение получат только пользователи, которые подтвердили привязку нажатием Start в боте."
+          description="Сообщение уйдёт всем аккаунтам с Telegram ID. Доставка возможна только тем, кто запускал вашего бота."
           onClose={() => setOperation(null)}
         >
           <form action={broadcastAction} className="space-y-4" encType="multipart/form-data">

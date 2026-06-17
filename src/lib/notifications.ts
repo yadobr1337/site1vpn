@@ -62,9 +62,6 @@ export async function broadcastTelegramMessage(params: {
 }) {
   const users = await db.user.findMany({
     where: {
-      telegramBotConfirmedAt: {
-        not: null,
-      },
       telegramId: {
         not: null,
       },
@@ -77,6 +74,7 @@ export async function broadcastTelegramMessage(params: {
   const message = `📣 <b>Объявление</b>\n\n${escapeTelegramHtml(params.text)}`;
   let delivered = 0;
   let failed = 0;
+  const errors = new Map<string, number>();
 
   for (const user of users) {
     if (!user.telegramId) continue;
@@ -89,6 +87,7 @@ export async function broadcastTelegramMessage(params: {
       delivered += 1;
     } else {
       failed += 1;
+      errors.set(result.error, (errors.get(result.error) ?? 0) + 1);
     }
   }
 
@@ -96,5 +95,8 @@ export async function broadcastTelegramMessage(params: {
     recipients: users.length,
     delivered,
     failed,
+    errors: Array.from(errors.entries())
+      .slice(0, 3)
+      .map(([message, count]) => ({ message, count })),
   };
 }

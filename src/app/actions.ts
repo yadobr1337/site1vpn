@@ -19,6 +19,7 @@ import {
 } from "@/lib/billing";
 import {
   buildEmailVerificationIdentifier,
+  buildPasswordChangeIdentifier,
   consumeEmailCode,
   issueEmailCode,
 } from "@/lib/email-codes";
@@ -93,6 +94,25 @@ function redirectByMailError(error: unknown) {
   }
 
   redirect("/dashboard/account?emailStatus=send_error");
+}
+
+function redirectByPasswordMailError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+
+  if (message.includes("SMTP is not configured")) {
+    redirect("/dashboard/account?passwordStatus=smtp_missing");
+  }
+
+  if (
+    message.includes("Invalid login") ||
+    message.includes("535") ||
+    message.includes("Username and Password not accepted") ||
+    message.toLowerCase().includes("auth")
+  ) {
+    redirect("/dashboard/account?passwordStatus=smtp_auth_error");
+  }
+
+  redirect("/dashboard/account?passwordStatus=send_error");
 }
 
 export async function topUpBalanceAction(formData: FormData) {
@@ -257,9 +277,18 @@ export async function broadcastTelegramAction(
     }
 
     const result = await broadcastTelegramMessage({ text, photo });
+    const errorSummary = result.errors.length
+      ? ` Причина: ${result.errors
+          .map((item) => `${item.count}× ${item.message.slice(0, 120)}`)
+          .join("; ")}`
+      : "";
+
     return {
       status: result.failed ? "error" : "success",
-      message: `Доставлено: ${result.delivered} из ${result.recipients}. Ошибок: ${result.failed}.`,
+      message:
+        result.recipients === 0
+          ? "Нет получателей: ни у одного пользователя пока нет Telegram ID."
+          : `Доставлено: ${result.delivered} из ${result.recipients}. Ошибок: ${result.failed}.${errorSummary}`,
     };
   } catch (error) {
     return { status: "error", message: getActionErrorMessage(error) };
@@ -565,33 +594,67 @@ export async function resendOwnEmailVerificationAction() {
   redirect("/dashboard/account?emailStatus=resent");
 }
 
+export async function sendOwnPasswordChangeCodeAction() {
+  const session = await requireUser();
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      email: true,
+      emailVerified: true,
+      isEmailPlaceholder: true,
+    },
+  });
+
+  if (!user || user.isEmailPlaceholder || !user.emailVerified) {
+    redirect("/dashboard/account?passwordStatus=no_verified_email");
+  }
+
+  try {
+    await issueEmailCode({
+      identifier: buildPasswordChangeIdentifier(user.id),
+      email: user.email,
+      subject: "1VPN: код для смены пароля",
+      title: "Смена пароля",
+      description: "Введите этот код в личном кабинете и задайте новый пароль.",
+    });
+  } catch (error) {
+    redirectByPasswordMailError(error);
+  }
+
+  revalidatePath("/dashboard/account");
+  redirect("/dashboard/account?passwordStatus=sent");
+}
+
 export async function updateOwnPasswordAction(formData: FormData) {
   const session = await requireUser();
-  const currentPassword = parseOptionalString(formData.get("currentPassword"));
+  const code = parseRequiredString(formData.get("code"));
   const newPassword = parseRequiredString(formData.get("newPassword"));
 
   if (newPassword.length < 8 || newPassword.length > 64) {
-    throw new Error("Password must contain 8-64 characters.");
+    redirect("/dashboard/account?passwordStatus=weak_password");
   }
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { passwordHash: true },
+    select: {
+      id: true,
+      emailVerified: true,
+      isEmailPlaceholder: true,
+    },
   });
 
   if (!user) {
-    throw new Error("User not found.");
+    redirect("/dashboard/account?passwordStatus=user_not_found");
   }
 
-  if (user.passwordHash) {
-    if (!currentPassword) {
-      throw new Error("Current password is required.");
-    }
+  if (user.isEmailPlaceholder || !user.emailVerified) {
+    redirect("/dashboard/account?passwordStatus=no_verified_email");
+  }
 
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!isValid) {
-      throw new Error("Current password is incorrect.");
-    }
+  const isValid = await consumeEmailCode(buildPasswordChangeIdentifier(user.id), code);
+  if (!isValid) {
+    redirect("/dashboard/account?passwordStatus=invalid_code");
   }
 
   await db.user.update({
@@ -602,6 +665,7 @@ export async function updateOwnPasswordAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard/account");
+  redirect("/dashboard/account?passwordStatus=updated");
 }
 
 export async function deleteOwnHwidDeviceAction(formData: FormData) {
