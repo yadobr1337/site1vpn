@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getAuthSession } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 
 export default async function LoginPage() {
-  const session = await getAuthSession();
+  const [session, settings] = await Promise.all([getAuthSession(), getSettings()]);
   if (session?.user) {
     redirect("/dashboard");
   }
@@ -33,7 +34,7 @@ export default async function LoginPage() {
         </p>
 
         <div className="mt-8">
-          <LoginForm />
+          <LoginForm captchaEnabled={settings.captchaEnabled} />
         </div>
       </Card>
     </main>

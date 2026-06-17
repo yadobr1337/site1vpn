@@ -35,7 +35,10 @@ export async function POST(request: Request) {
   if (settings.captchaEnabled) {
     const captchaOk = await verifyTurnstileToken(payload.captchaToken);
     if (!captchaOk) {
-      return NextResponse.json({ error: "CAPTCHA verification failed." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Пройдите CAPTCHA перед регистрацией." },
+        { status: 400 },
+      );
     }
   }
 

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { verifyTurnstileToken } from "@/lib/captcha";
 import { getSettings } from "@/lib/settings";
 import { ensureUserSquad } from "@/lib/squads";
 import { sendTelegramMessage, verifyTelegramAuth, verifyTelegramMiniAppAuth } from "@/lib/telegram";
@@ -99,10 +100,19 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        captchaToken: { label: "CAPTCHA", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) {
           throw new Error("Email and password are required.");
+        }
+
+        const settings = await getSettings();
+        if (settings.captchaEnabled) {
+          const captchaOk = await verifyTurnstileToken(credentials.captchaToken);
+          if (!captchaOk) {
+            throw new Error("CAPTCHA verification failed.");
+          }
         }
 
         const user = await db.user.findUnique({

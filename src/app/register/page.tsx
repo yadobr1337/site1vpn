@@ -41,7 +41,7 @@ export default async function RegisterPage() {
         </p>
 
         <div className="mt-8">
-          <RegisterForm />
+          <RegisterForm captchaEnabled={settings.captchaEnabled} />
         </div>
 
         <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.25em] text-zinc-500">

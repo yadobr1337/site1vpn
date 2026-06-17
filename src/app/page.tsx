@@ -158,7 +158,7 @@ export default async function HomePage() {
             <div className="space-y-3 sm:space-y-4">
               <ScrollReveal>
                 <Badge className="px-3 py-1 text-[10px] tracking-[0.28em] sm:text-xs">
-                  Dark neon / tech panel
+                  PRIVATE VPN / SECURE CONNECTION
                 </Badge>
               </ScrollReveal>
               <ScrollReveal delay={1}>
@@ -170,8 +170,8 @@ export default async function HomePage() {
               </ScrollReveal>
               <ScrollReveal delay={2}>
                 <p className="max-w-2xl text-[15px] leading-7 text-zinc-300 sm:text-lg sm:leading-8">
-                  Подключение за минуту, гибкий баланс вместо тарифов и управление устройствами из
-                  одного кабинета без перегруженного интерфейса.
+                  Безопасный VPN-доступ без сложных настроек: подключение за пару кликов,
+                  удобное продление и контроль устройств.
                 </p>
               </ScrollReveal>
             </div>

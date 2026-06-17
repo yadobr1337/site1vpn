@@ -1,65 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { isTurnstileConfigured, TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { publicEnv } from "@/lib/public-env";
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        container: HTMLElement,
-        options: {
-          sitekey: string;
-          callback: (token: string) => void;
-        },
-      ) => void;
-    };
-  }
-}
-
-export function RegisterForm() {
+export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [pending, startTransition] = useTransition();
-  const captchaRef = useRef<HTMLDivElement>(null);
-  const shouldRenderCaptcha = useMemo(() => Boolean(publicEnv.TURNSTILE_SITE_KEY), []);
-
-  useEffect(() => {
-    if (!shouldRenderCaptcha || !captchaRef.current || !publicEnv.TURNSTILE_SITE_KEY) {
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    script.async = true;
-    script.onload = () => {
-      window.turnstile?.render(captchaRef.current as HTMLElement, {
-        sitekey: publicEnv.TURNSTILE_SITE_KEY!,
-        callback: setCaptchaToken,
-      });
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      script.remove();
-    };
-  }, [shouldRenderCaptcha]);
+  const captchaRequired = captchaEnabled && isTurnstileConfigured;
+  const resetCaptcha = useCallback(() => setCaptchaToken(""), []);
 
   return (
     <form
       className="space-y-4"
       onSubmit={(event) => {
-        event.preventDefault();
-        setError(null);
-        setMessage(null);
-        const form = event.currentTarget;
+            event.preventDefault();
+            setError(null);
+            setMessage(null);
+            const form = event.currentTarget;
 
-        startTransition(async () => {
+            if (captchaRequired && !captchaToken) {
+              setError("Пройдите CAPTCHA перед регистрацией.");
+              return;
+            }
+
+            startTransition(async () => {
           const formData = new FormData(form);
           const email = String(formData.get("email") ?? "");
           const password = String(formData.get("password") ?? "");
@@ -77,6 +47,14 @@ export function RegisterForm() {
           const payload = (await response.json()) as { error?: string; emailCodeSent?: boolean };
           if (!response.ok) {
             setError(payload.error ?? "Не удалось создать аккаунт.");
+            return;
+          }
+
+          if (captchaRequired) {
+            setMessage("Аккаунт создан. Теперь войдите с email и пройдите CAPTCHA.");
+            window.setTimeout(() => {
+              window.location.href = "/login";
+            }, 1200);
             return;
           }
 
@@ -110,15 +88,7 @@ export function RegisterForm() {
         <Input name="password" type="password" placeholder="Минимум 8 символов" minLength={8} required />
       </div>
 
-      {shouldRenderCaptcha ? (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-          <div ref={captchaRef} />
-        </div>
-      ) : (
-        <p className="rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-400">
-          CAPTCHA отключена, пока не заполнен `TURNSTILE_SITE_KEY`.
-        </p>
-      )}
+      <TurnstileWidget enabled={captchaEnabled} onVerify={setCaptchaToken} onReset={resetCaptcha} />
 
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
