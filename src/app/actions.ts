@@ -247,7 +247,7 @@ export async function grantDaysToAllUsersAction(
     revalidatePath("/dashboard");
     return {
       status: result.failed ? "error" : "success",
-      message: `Начислено: ${result.granted} из ${result.total}. Ошибок: ${result.failed}.`,
+      message: `Пополнено: ${result.granted} из ${result.total}. Каждый получил ${(result.amountKopeks / 100).toFixed(2)} ₽ (${days} дн. × цена дня). Ошибок баланса: ${result.failed}.`,
     };
   } catch (error) {
     return { status: "error", message: getActionErrorMessage(error) };

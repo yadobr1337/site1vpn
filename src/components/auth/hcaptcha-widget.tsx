@@ -26,9 +26,10 @@ type HCaptchaWidgetProps = {
   enabled: boolean;
   onVerify: (token: string) => void;
   onReset?: () => void;
+  resetSignal?: number;
 };
 
-export function HCaptchaWidget({ enabled, onVerify, onReset }: HCaptchaWidgetProps) {
+export function HCaptchaWidget({ enabled, onVerify, onReset, resetSignal = 0 }: HCaptchaWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
@@ -79,6 +80,14 @@ export function HCaptchaWidget({ enabled, onVerify, onReset }: HCaptchaWidgetPro
 
     return () => script.removeEventListener("load", renderWidget);
   }, [enabled, onReset, onVerify]);
+
+  useEffect(() => {
+    if (!widgetIdRef.current) {
+      return;
+    }
+
+    window.hcaptcha?.reset?.(widgetIdRef.current);
+  }, [resetSignal]);
 
   if (!enabled) {
     return (

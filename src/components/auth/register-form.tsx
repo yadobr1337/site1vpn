@@ -11,9 +11,13 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
   const [pending, startTransition] = useTransition();
   const captchaRequired = captchaEnabled;
-  const resetCaptcha = useCallback(() => setCaptchaToken(""), []);
+  const resetCaptcha = useCallback(() => {
+    setCaptchaToken("");
+    setCaptchaResetSignal((value) => value + 1);
+  }, []);
 
   return (
     <form
@@ -47,14 +51,7 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
           const payload = (await response.json()) as { error?: string; emailCodeSent?: boolean };
           if (!response.ok) {
             setError(payload.error ?? "Не удалось создать аккаунт.");
-            return;
-          }
-
-          if (captchaRequired) {
-            setMessage("Аккаунт создан. Теперь войдите с email и пройдите CAPTCHA.");
-            window.setTimeout(() => {
-              window.location.href = "/login";
-            }, 1200);
+            resetCaptcha();
             return;
           }
 
@@ -88,7 +85,12 @@ export function RegisterForm({ captchaEnabled }: { captchaEnabled: boolean }) {
         <Input name="password" type="password" placeholder="Минимум 8 символов" minLength={8} required />
       </div>
 
-      <HCaptchaWidget enabled={captchaEnabled} onVerify={setCaptchaToken} onReset={resetCaptcha} />
+      <HCaptchaWidget
+        enabled={captchaEnabled}
+        onVerify={setCaptchaToken}
+        onReset={resetCaptcha}
+        resetSignal={captchaResetSignal}
+      />
 
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
       {error ? <p className="text-sm text-red-300">{error}</p> : null}

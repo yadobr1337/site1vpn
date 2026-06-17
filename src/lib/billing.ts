@@ -405,15 +405,18 @@ export async function grantDaysToAllUsers(params: {
     select: { id: true },
   });
   const cycleKey = `admin-grant:${Date.now()}:${params.days}`;
+  const amountKopeks = settings.pricePerDayKopeks * params.days;
   let granted = 0;
   let failed = 0;
+  let notified = 0;
+  let notificationFailed = 0;
 
   for (const item of users) {
+    let user: ManagedUser;
     try {
-      const user = await db.$transaction(
+      user = await db.$transaction(
         async (tx) => {
           const settled = await settleUserBilling(item.id, tx);
-          const amountKopeks = settings.pricePerDayKopeks * params.days;
 
           return activateSubscription({
             tx,
@@ -426,17 +429,24 @@ export async function grantDaysToAllUsers(params: {
         { timeout: 15_000, maxWait: 10_000 },
       );
 
-      await syncUserLifecycle(user.id);
+      granted += 1;
+    } catch (error) {
+      failed += 1;
+      console.error(`[admin-grant] failed to update balance for user ${item.id}`, error);
+      continue;
+    }
+
+    try {
       await notifyUserOnce({
         user,
         type: NotificationType.ADMIN_GRANT,
         cycleKey,
         message: `🎁 <b>Вам начислено ${params.days} дн.</b>\n\n${escapeTelegramHtml(params.description)}`,
       });
-      granted += 1;
+      notified += 1;
     } catch (error) {
-      failed += 1;
-      console.error(`[admin-grant] failed for user ${item.id}`, error);
+      notificationFailed += 1;
+      console.error(`[admin-grant] failed to notify user ${item.id}`, error);
     }
   }
 
@@ -444,6 +454,9 @@ export async function grantDaysToAllUsers(params: {
     total: users.length,
     granted,
     failed,
+    notified,
+    notificationFailed,
+    amountKopeks,
   };
 }
 

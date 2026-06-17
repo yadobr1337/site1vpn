@@ -1,21 +1,17 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { TelegramLogin } from "@/components/auth/telegram-login";
-import { HCaptchaWidget } from "@/components/auth/hcaptcha-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function LoginForm({ captchaEnabled }: { captchaEnabled: boolean }) {
+export function LoginForm() {
   const [resetMode, setResetMode] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState("");
   const [pending, startTransition] = useTransition();
-  const captchaRequired = captchaEnabled;
-  const resetCaptcha = useCallback(() => setCaptchaToken(""), []);
 
   return (
     <div className="space-y-6">
@@ -28,24 +24,17 @@ export function LoginForm({ captchaEnabled }: { captchaEnabled: boolean }) {
             setMessage(null);
             const form = event.currentTarget;
 
-            if (captchaRequired && !captchaToken) {
-              setError("Пройдите CAPTCHA перед входом.");
-              return;
-            }
-
             startTransition(async () => {
               const formData = new FormData(form);
               const result = await signIn("credentials", {
                 email: String(formData.get("email") ?? ""),
                 password: String(formData.get("password") ?? ""),
-                captchaToken,
                 redirect: false,
                 callbackUrl: "/dashboard",
               });
 
               if (result?.error) {
-                setError("Неверный email или пароль. Пройдите CAPTCHA и попробуйте ещё раз.");
-                resetCaptcha();
+                setError("Неверный email или пароль.");
                 return;
               }
 
@@ -61,11 +50,6 @@ export function LoginForm({ captchaEnabled }: { captchaEnabled: boolean }) {
             <label className="text-sm text-zinc-300">Пароль</label>
             <Input name="password" type="password" placeholder="••••••••" required />
           </div>
-          <HCaptchaWidget
-            enabled={captchaEnabled}
-            onVerify={setCaptchaToken}
-            onReset={resetCaptcha}
-          />
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           <button
             type="button"
