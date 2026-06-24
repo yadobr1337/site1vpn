@@ -22,6 +22,13 @@ type ProvisioningTarget = {
   productId: string;
 };
 
+type ProvisioningLocation = {
+  locationKey: string;
+  locationName: string;
+  countryCode: string;
+  productId: string;
+};
+
 type ProvisioningConfig = {
   enabled: boolean;
   dryRun: boolean;
@@ -165,15 +172,13 @@ function parseTargetLine(line: string): ProvisioningTarget | null {
   };
 }
 
-function getDefaultTargets() {
+function getDefaultLocations(): ProvisioningLocation[] {
   return [
     env.AEZA_PRODUCT_ID_AMSTERDAM
       ? {
           locationKey: "amsterdam",
           locationName: "Amsterdam",
           countryCode: "NL",
-          nodeName: "nd1",
-          subdomain: "nd1",
           productId: env.AEZA_PRODUCT_ID_AMSTERDAM,
         }
       : null,
@@ -182,8 +187,6 @@ function getDefaultTargets() {
           locationKey: "vienna",
           locationName: "Vienna",
           countryCode: "AT",
-          nodeName: "nd2",
-          subdomain: "nd2",
           productId: env.AEZA_PRODUCT_ID_VIENNA,
         }
       : null,
@@ -192,12 +195,36 @@ function getDefaultTargets() {
           locationKey: "helsinki",
           locationName: "Helsinki",
           countryCode: "FI",
-          nodeName: "nd3",
-          subdomain: "nd3",
           productId: env.AEZA_PRODUCT_ID_HELSINKI,
         }
       : null,
-  ].filter(Boolean) as ProvisioningTarget[];
+  ].filter(Boolean) as ProvisioningLocation[];
+}
+
+function buildGeneratedTargets(maxServers: number) {
+  const locations = getDefaultLocations();
+  const targets: ProvisioningTarget[] = [];
+
+  if (!locations.length) {
+    return targets;
+  }
+
+  for (let index = 0; index < maxServers; index += 1) {
+    const location = locations[index % locations.length];
+    const nodeNumber = index + 1;
+    const nodeName = `nd${nodeNumber}`;
+    const locationKey =
+      nodeNumber <= locations.length ? location.locationKey : `${location.locationKey}-${nodeNumber}`;
+
+    targets.push({
+      ...location,
+      locationKey,
+      nodeName,
+      subdomain: nodeName,
+    });
+  }
+
+  return targets;
 }
 
 export function getProvisioningConfig(): ProvisioningConfig {
@@ -210,7 +237,10 @@ export function getProvisioningConfig(): ProvisioningConfig {
   return {
     enabled: env.AUTO_PROVISION_ENABLED === "true",
     dryRun: parseBoolean(env.AUTO_PROVISION_DRY_RUN, true),
-    targets: (configuredTargets?.length ? configuredTargets : getDefaultTargets()).slice(0, maxServers),
+    targets: (configuredTargets?.length ? configuredTargets : buildGeneratedTargets(maxServers)).slice(
+      0,
+      maxServers,
+    ),
     domain,
     memberLimit: env.AUTO_PROVISION_MEMBER_LIMIT ?? DEFAULT_SQUAD_MEMBER_LIMIT,
     batchSize: env.AUTO_PROVISION_BATCH_SIZE ?? 1,
