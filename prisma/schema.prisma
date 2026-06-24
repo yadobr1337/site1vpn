@@ -119,6 +119,9 @@ model Squad {
 model ProvisioningJob {
   id                         String   @id @default(cuid())
   locationKey                String   @unique
+  groupKey                   String?
+  groupIndex                 Int?
+  nodeIndex                  Int?
   locationName               String
   countryCode                String
   nodeName                   String
@@ -141,6 +144,7 @@ model ProvisioningJob {
   updatedAt                  DateTime @updatedAt
 
   @@index([status, updatedAt])
+  @@index([groupKey])
 }
 
 model BalanceTransaction {

@@ -40,7 +40,14 @@ export async function ensureUserSquad(userId: string, tx: Prisma.TransactionClie
   }
 
   const squad = await findAvailableSquad(tx);
-  const assignedSquad = squad ?? (await createAutoSquad(tx));
+  let assignedSquad: Squad | null = squad;
+
+  if (!assignedSquad) {
+    const { createProvisioningSquadForCapacity } = await import("@/lib/provisioning-capacity");
+    assignedSquad = await createProvisioningSquadForCapacity(tx, { requireProduction: true });
+  }
+
+  assignedSquad ??= await createAutoSquad(tx);
 
   await tx.user.update({
     where: { id: userId },

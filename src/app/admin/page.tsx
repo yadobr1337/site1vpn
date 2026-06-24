@@ -222,6 +222,15 @@ export default async function AdminPage({
                 <span className="rounded-full border border-white/10 px-3 py-1">
                   targets: {provisioning.config.targets.length}
                 </span>
+                <span className="rounded-full border border-white/10 px-3 py-1">
+                  nodes/squad: {provisioning.config.nodesPerSquad}
+                </span>
+                <span className="rounded-full border border-white/10 px-3 py-1">
+                  max squads:{" "}
+                  {Math.floor(
+                    provisioning.config.maxServers / provisioning.config.nodesPerSquad,
+                  )}
+                </span>
               </div>
               {provisioning.missing.length ? (
                 <p className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -251,6 +260,11 @@ export default async function AdminPage({
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-zinc-400">{job.fqdn}</p>
+                  {job.groupKey ? (
+                    <p className="mt-2 text-xs text-zinc-500">
+                      group: {job.groupKey} / node {job.nodeIndex ?? "-"}
+                    </p>
+                  ) : null}
                   {job.serverIp ? (
                     <p className="mt-2 text-sm text-zinc-300">IP: {job.serverIp}</p>
                   ) : null}

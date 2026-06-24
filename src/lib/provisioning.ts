@@ -1,46 +1,22 @@
 import "server-only";
 
-import { spawn } from "node:child_process";
-import { Prisma, type ProvisioningJob } from "@prisma/client";
+import type { ProvisioningJob } from "@prisma/client";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import {
+  appendLog,
+  ensureProvisioningCapacity,
+  getMissingProductionConfig,
+  getProvisioningConfig,
+  type ProvisioningConfig,
+} from "@/lib/provisioning-capacity";
 import {
   createRemoteConfigProfile,
   createRemoteHost,
   createRemoteInternalSquad,
   createRemoteNode,
 } from "@/lib/remnawave";
-import { DEFAULT_SQUAD_MEMBER_LIMIT } from "@/lib/site";
 import { slugify } from "@/lib/utils";
-
-type ProvisioningTarget = {
-  locationKey: string;
-  locationName: string;
-  countryCode: string;
-  nodeName: string;
-  subdomain: string;
-  productId: string;
-};
-
-type ProvisioningLocation = {
-  locationKey: string;
-  locationName: string;
-  countryCode: string;
-  productId: string;
-};
-
-type ProvisioningConfig = {
-  enabled: boolean;
-  dryRun: boolean;
-  targets: ProvisioningTarget[];
-  domain: string;
-  memberLimit: number;
-  batchSize: number;
-  nodePort: number;
-  hostPort: number;
-  timewebDomain: string;
-  timewebTtl: number;
-};
 
 type AezaServerInfo = {
   id: string | null;
@@ -139,118 +115,6 @@ export type ProvisioningRunResult = {
   errors: string[];
 };
 
-function parseBoolean(value: string | undefined, defaultValue: boolean) {
-  if (!value) {
-    return defaultValue;
-  }
-
-  return value === "true";
-}
-
-function parseTargetLine(line: string): ProvisioningTarget | null {
-  const parts = line
-    .split("|")
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length !== 6) {
-    return null;
-  }
-
-  const [locationKey, locationName, countryCode, nodeName, subdomain, productId] = parts;
-  if (!locationKey || !locationName || !countryCode || !nodeName || !subdomain || !productId) {
-    return null;
-  }
-
-  return {
-    locationKey,
-    locationName,
-    countryCode: countryCode.toUpperCase(),
-    nodeName,
-    subdomain,
-    productId,
-  };
-}
-
-function getDefaultLocations(): ProvisioningLocation[] {
-  return [
-    env.AEZA_PRODUCT_ID_AMSTERDAM
-      ? {
-          locationKey: "amsterdam",
-          locationName: "Amsterdam",
-          countryCode: "NL",
-          productId: env.AEZA_PRODUCT_ID_AMSTERDAM,
-        }
-      : null,
-    env.AEZA_PRODUCT_ID_VIENNA
-      ? {
-          locationKey: "vienna",
-          locationName: "Vienna",
-          countryCode: "AT",
-          productId: env.AEZA_PRODUCT_ID_VIENNA,
-        }
-      : null,
-    env.AEZA_PRODUCT_ID_HELSINKI
-      ? {
-          locationKey: "helsinki",
-          locationName: "Helsinki",
-          countryCode: "FI",
-          productId: env.AEZA_PRODUCT_ID_HELSINKI,
-        }
-      : null,
-  ].filter(Boolean) as ProvisioningLocation[];
-}
-
-function buildGeneratedTargets(maxServers: number) {
-  const locations = getDefaultLocations();
-  const targets: ProvisioningTarget[] = [];
-
-  if (!locations.length) {
-    return targets;
-  }
-
-  for (let index = 0; index < maxServers; index += 1) {
-    const location = locations[index % locations.length];
-    const nodeNumber = index + 1;
-    const nodeName = `nd${nodeNumber}`;
-    const locationKey =
-      nodeNumber <= locations.length ? location.locationKey : `${location.locationKey}-${nodeNumber}`;
-
-    targets.push({
-      ...location,
-      locationKey,
-      nodeName,
-      subdomain: nodeName,
-    });
-  }
-
-  return targets;
-}
-
-export function getProvisioningConfig(): ProvisioningConfig {
-  const configuredTargets = env.AUTO_PROVISION_TARGETS?.split(",")
-    .map(parseTargetLine)
-    .filter(Boolean) as ProvisioningTarget[] | undefined;
-  const domain = env.AUTO_PROVISION_DOMAIN ?? "the1vpn.ru";
-  const maxServers = env.AUTO_PROVISION_MAX_SERVERS ?? 3;
-
-  return {
-    enabled: env.AUTO_PROVISION_ENABLED === "true",
-    dryRun: parseBoolean(env.AUTO_PROVISION_DRY_RUN, true),
-    targets: (configuredTargets?.length ? configuredTargets : buildGeneratedTargets(maxServers)).slice(
-      0,
-      maxServers,
-    ),
-    domain,
-    memberLimit: env.AUTO_PROVISION_MEMBER_LIMIT ?? DEFAULT_SQUAD_MEMBER_LIMIT,
-    batchSize: env.AUTO_PROVISION_BATCH_SIZE ?? 1,
-    nodePort: env.AUTO_PROVISION_NODE_PORT ?? 2222,
-    hostPort: env.AUTO_PROVISION_HOST_PORT ?? 443,
-    timewebDomain: env.TIMEWEB_DOMAIN ?? domain,
-    timewebTtl: env.TIMEWEB_DNS_TTL ?? 600,
-  };
-}
-
 export async function getProvisioningOverview() {
   const config = getProvisioningConfig();
   const jobs = await db.provisioningJob.findMany({
@@ -262,44 +126,6 @@ export async function getProvisioningOverview() {
     jobs,
     missing: getMissingProductionConfig(config),
   };
-}
-
-function getMissingProductionConfig(config: ProvisioningConfig) {
-  if (!config.enabled || config.dryRun) {
-    return [];
-  }
-
-  const required: Array<[string, string | number | undefined]> = [
-    ["AEZA_API_TOKEN", env.AEZA_API_TOKEN],
-    ["TIMEWEB_CLOUD_TOKEN", env.TIMEWEB_CLOUD_TOKEN],
-    ["REMNAWAVE_BASE_URL", env.REMNAWAVE_BASE_URL],
-    ["REMNAWAVE_API_TOKEN", env.REMNAWAVE_API_TOKEN],
-    ["AUTO_PROVISION_CERTBOT_EMAIL", env.AUTO_PROVISION_CERTBOT_EMAIL],
-    ["AUTO_PROVISION_REMNANODE_SECRET_KEY", env.AUTO_PROVISION_REMNANODE_SECRET_KEY],
-    ["AUTO_PROVISION_SSH_PRIVATE_KEY_PATH", env.AUTO_PROVISION_SSH_PRIVATE_KEY_PATH],
-  ];
-
-  return required
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-}
-
-function appendLog(
-  logs: Prisma.JsonValue | null,
-  message: string,
-  details?: Record<string, unknown>,
-) {
-  const current = Array.isArray(logs) ? logs : [];
-  const safeDetails = JSON.parse(JSON.stringify(details ?? {})) as Prisma.JsonObject;
-
-  return [
-    ...current.slice(-49),
-    {
-      at: new Date().toISOString(),
-      message,
-      details: safeDetails,
-    },
-  ] as Prisma.JsonArray;
 }
 
 async function updateJobLog(
@@ -326,48 +152,6 @@ async function updateJobError(job: ProvisioningJob, error: unknown) {
       logs: appendLog(job.logs, "Step failed", { error: message.slice(0, 800) }),
     },
   });
-}
-
-async function ensureProvisioningJobs(config: ProvisioningConfig) {
-  let created = 0;
-
-  for (const target of config.targets) {
-    const fqdn = `${target.subdomain}.${config.domain}`;
-    const existing = await db.provisioningJob.findUnique({
-      where: { locationKey: target.locationKey },
-    });
-
-    if (existing) {
-      await db.provisioningJob.update({
-        where: { id: existing.id },
-        data: {
-          locationName: target.locationName,
-          countryCode: target.countryCode,
-          nodeName: target.nodeName,
-          subdomain: target.subdomain,
-          fqdn,
-          productId: target.productId,
-        },
-      });
-      continue;
-    }
-
-    await db.provisioningJob.create({
-      data: {
-        locationKey: target.locationKey,
-        locationName: target.locationName,
-        countryCode: target.countryCode,
-        nodeName: target.nodeName,
-        subdomain: target.subdomain,
-        fqdn,
-        productId: target.productId,
-        logs: appendLog(null, "Provisioning job created"),
-      },
-    });
-    created += 1;
-  }
-
-  return created;
 }
 
 export async function runProvisioningSweep(): Promise<ProvisioningRunResult> {
@@ -421,12 +205,9 @@ async function executeProvisioningSweep(): Promise<ProvisioningRunResult> {
     };
   }
 
-  const createdJobs = await ensureProvisioningJobs(config);
+  const createdJobs = await ensureProvisioningCapacity(config);
   const jobs = await db.provisioningJob.findMany({
     where: {
-      locationKey: {
-        in: config.targets.map((target) => target.locationKey),
-      },
       NOT: {
         status: "ACTIVE",
       },
@@ -805,48 +586,33 @@ function getInboundUuid(profile: Awaited<ReturnType<typeof createRemoteConfigPro
   return inbound.uuid;
 }
 
-async function createLocalSquad(job: ProvisioningJob, config: ProvisioningConfig, remoteUuid: string) {
-  if (job.squadId) {
-    return job.squadId;
-  }
-
-  const existing = await db.squad.findUnique({
-    where: { remnawaveInternalSquadUuid: remoteUuid },
-    select: { id: true },
-  });
-
-  if (existing) {
-    return existing.id;
-  }
-
-  const name = `${job.nodeName} squad`;
-  const position = (await db.squad.count()) + 1;
-  const squad = await db.squad.create({
-    data: {
-      name,
-      slug: slugify(`${name}-${remoteUuid.slice(0, 8)}-${Date.now().toString(36)}`),
-      memberLimit: config.memberLimit,
-      position,
-      isActive: true,
-      remnawaveInternalSquadUuid: remoteUuid,
-    },
-  });
-
-  return squad.id;
-}
-
 async function ensureRemnawaveResources(job: ProvisioningJob, config: ProvisioningConfig) {
-  let profileUuid = job.remnawaveConfigProfileUuid;
-  let inboundUuid = job.remnawaveInboundUuid;
+  const groupJobs = job.groupKey
+    ? await db.provisioningJob.findMany({
+        where: { groupKey: job.groupKey },
+        orderBy: [{ nodeIndex: "asc" }, { createdAt: "asc" }],
+      })
+    : [job];
+  const groupWhere = job.groupKey ? { groupKey: job.groupKey } : { id: job.id };
+  const groupLabel = job.groupIndex ? `Squad ${job.groupIndex}` : job.nodeName;
+
+  let profileUuid =
+    groupJobs.find((item) => item.remnawaveConfigProfileUuid)?.remnawaveConfigProfileUuid ??
+    job.remnawaveConfigProfileUuid;
+  let inboundUuid =
+    groupJobs.find((item) => item.remnawaveInboundUuid)?.remnawaveInboundUuid ??
+    job.remnawaveInboundUuid;
   let nodeUuid = job.remnawaveNodeUuid;
   let hostUuid = job.remnawaveHostUuid;
-  let squadUuid = job.remnawaveInternalSquadUuid;
-  let squadId = job.squadId;
+  let squadUuid =
+    groupJobs.find((item) => item.remnawaveInternalSquadUuid)?.remnawaveInternalSquadUuid ??
+    job.remnawaveInternalSquadUuid;
+  let squadId = groupJobs.find((item) => item.squadId)?.squadId ?? job.squadId;
   let logs = job.logs;
 
   if (!profileUuid || !inboundUuid) {
     const profile = await createRemoteConfigProfile({
-      name: `${job.nodeName}-Hysteria`,
+      name: `${groupLabel} Hysteria`,
       config: HYSTERIA_BBR_CONFIG,
     });
     profileUuid = profile.uuid;
@@ -856,12 +622,55 @@ async function ensureRemnawaveResources(job: ProvisioningJob, config: Provisioni
 
   if (!squadUuid) {
     const remoteSquad = await createRemoteInternalSquad({
-      name: `${job.nodeName} internal`,
+      name: `${groupLabel} internal`,
       inbounds: [inboundUuid],
     });
     squadUuid = remoteSquad.uuid;
     logs = appendLog(logs, "Remnawave internal squad created", { squadUuid });
   }
+
+  if (!squadId) {
+    const existing = await db.squad.findUnique({
+      where: { remnawaveInternalSquadUuid: squadUuid },
+      select: { id: true },
+    });
+
+    if (existing) {
+      squadId = existing.id;
+    } else {
+      const position = (await db.squad.count()) + 1;
+      const name = `${groupLabel} auto`;
+      const squad = await db.squad.create({
+        data: {
+          name,
+          slug: slugify(`${name}-${squadUuid.slice(0, 8)}-${Date.now().toString(36)}`),
+          memberLimit: config.memberLimit,
+          position,
+          isActive: true,
+          remnawaveInternalSquadUuid: squadUuid,
+        },
+      });
+      squadId = squad.id;
+    }
+  } else {
+    await db.squad.update({
+      where: { id: squadId },
+      data: {
+        isActive: true,
+        remnawaveInternalSquadUuid: squadUuid,
+      },
+    });
+  }
+
+  await db.provisioningJob.updateMany({
+    where: groupWhere,
+    data: {
+      remnawaveConfigProfileUuid: profileUuid,
+      remnawaveInboundUuid: inboundUuid,
+      remnawaveInternalSquadUuid: squadUuid,
+      squadId,
+    },
+  });
 
   if (!nodeUuid) {
     const node = await createRemoteNode({
@@ -890,19 +699,6 @@ async function ensureRemnawaveResources(job: ProvisioningJob, config: Provisioni
     logs = appendLog(logs, "Remnawave host created", { hostUuid });
   }
 
-  squadId = await createLocalSquad(
-    {
-      ...job,
-      remnawaveConfigProfileUuid: profileUuid,
-      remnawaveInboundUuid: inboundUuid,
-      remnawaveNodeUuid: nodeUuid,
-      remnawaveHostUuid: hostUuid,
-      remnawaveInternalSquadUuid: squadUuid,
-      squadId,
-    },
-    config,
-    squadUuid,
-  );
   logs = appendLog(logs, "Local squad is ready", { squadId });
 
   await db.provisioningJob.update({
@@ -1022,6 +818,7 @@ async function runSshScript(host: string, script: string) {
     throw new Error("AUTO_PROVISION_SSH_PRIVATE_KEY_PATH is not configured.");
   }
 
+  const { spawn } = await import("node:child_process");
   const user = env.AUTO_PROVISION_SSH_USER ?? "root";
   const timeoutMs = (env.AUTO_PROVISION_SSH_CONNECT_TIMEOUT_SECONDS ?? 20) * 1000;
 
