@@ -1,5 +1,6 @@
 import { Prisma, type Squad } from "@prisma/client";
 import { db } from "@/lib/db";
+import { DEFAULT_SQUAD_MEMBER_LIMIT } from "@/lib/site";
 import { slugify } from "@/lib/utils";
 
 export async function findAvailableSquad(tx: Prisma.TransactionClient = db) {
@@ -39,16 +40,14 @@ export async function ensureUserSquad(userId: string, tx: Prisma.TransactionClie
   }
 
   const squad = await findAvailableSquad(tx);
-  if (!squad) {
-    return null;
-  }
+  const assignedSquad = squad ?? (await createAutoSquad(tx));
 
   await tx.user.update({
     where: { id: userId },
-    data: { squadId: squad.id },
+    data: { squadId: assignedSquad.id },
   });
 
-  return squad;
+  return assignedSquad;
 }
 
 function buildSquadName(uuid: string, name?: string) {
@@ -74,6 +73,21 @@ export async function createSquad(input: {
       memberLimit: input.memberLimit,
       position: (await db.squad.count()) + 1,
       remnawaveInternalSquadUuid: input.remnawaveInternalSquadUuid,
+    },
+  });
+}
+
+async function createAutoSquad(tx: Prisma.TransactionClient = db) {
+  const position = (await tx.squad.count()) + 1;
+  const name = `Auto Squad ${position}`;
+
+  return tx.squad.create({
+    data: {
+      name,
+      slug: slugify(`${name}-${Date.now().toString(36)}`),
+      memberLimit: DEFAULT_SQUAD_MEMBER_LIMIT,
+      position,
+      isActive: true,
     },
   });
 }

@@ -12,6 +12,7 @@ import { escapeTelegramHtml } from "@/lib/telegram";
 import {
   deleteRemoteUser,
   disableRemoteUser,
+  ensureRemoteSquad,
   provisionRemoteUser,
 } from "@/lib/remnawave";
 import { getSettings } from "@/lib/settings";
@@ -544,13 +545,26 @@ export async function syncUserLifecycle(userId: string) {
         });
       }
 
-      if (!managed.squad?.remnawaveInternalSquadUuid) {
+      let squadRemoteUuid = managed.squad?.remnawaveInternalSquadUuid ?? null;
+
+      if (managed.squad && !squadRemoteUuid) {
+        squadRemoteUuid = await ensureRemoteSquad(managed.squad);
+
+        if (squadRemoteUuid) {
+          await db.squad.update({
+            where: { id: managed.squad.id },
+            data: { remnawaveInternalSquadUuid: squadRemoteUuid },
+          });
+        }
+      }
+
+      if (!squadRemoteUuid) {
         return db.user.update({
           where: { id: managed.id },
           data: {
             vpnProvisionState: "PENDING",
             vpnStatusMessage: managed.squad
-              ? "Укажите UUID сквада Remnawave в админке"
+              ? "Укажите UUID сквада Remnawave в админке или заполните REMNAWAVE_DEFAULT_INBOUND_UUIDS для автосоздания"
               : "Ожидает назначения в свободный сквад",
           },
           include: { squad: true },
@@ -559,7 +573,7 @@ export async function syncUserLifecycle(userId: string) {
 
       const remoteUser = await provisionRemoteUser({
         user: managed,
-        squadRemoteUuid: managed.squad.remnawaveInternalSquadUuid,
+        squadRemoteUuid,
         hwidDeviceLimit: resolveHwidDeviceLimit(managed, settings.defaultHwidDeviceLimit),
         expireAt: computeSubscriptionExpireAt(managed, settings),
       });

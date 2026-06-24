@@ -60,7 +60,7 @@ async function main() {
     create: {
       name: "Alpha Core",
       slug: "alpha-core",
-      memberLimit: 250,
+      memberLimit: 60,
       position: 1,
     },
   });
