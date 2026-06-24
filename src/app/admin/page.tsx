@@ -10,6 +10,7 @@ import { SiteRestartCard } from "@/components/admin/site-restart-card";
 import { SquadManager } from "@/components/admin/squad-manager";
 import { UserManagerModal } from "@/components/admin/user-manager-modal";
 import {
+  runProvisioningNowAction,
   runSyncNowAction,
   updateSettingsAction,
 } from "@/app/actions";
@@ -17,6 +18,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { checkRemnawaveConnection } from "@/lib/remnawave";
+import { getProvisioningOverview } from "@/lib/provisioning";
 import { ensureAllUsersHavePublicIds } from "@/lib/user-identity";
 import { formatCurrency, formatDays } from "@/lib/utils";
 
@@ -113,7 +115,17 @@ export default async function AdminPage({
   const userQuery = Array.isArray(params.user) ? params.user[0] : params.user;
   const normalizedQuery = userQuery?.trim();
 
-  const [settings, userStats, squads, searchedUser, remnawaveStatus, todayStats, weekStats, monthStats] = await Promise.all([
+  const [
+    settings,
+    userStats,
+    squads,
+    searchedUser,
+    remnawaveStatus,
+    provisioning,
+    todayStats,
+    weekStats,
+    monthStats,
+  ] = await Promise.all([
     getSettings(),
     db.user.aggregate({
       _count: {
@@ -153,6 +165,7 @@ export default async function AdminPage({
         })
       : Promise.resolve(null),
     checkRemnawaveConnection(),
+    getProvisioningOverview(),
     getAdminStats(getPeriodStart(1)),
     getAdminStats(getPeriodStart(7)),
     getAdminStats(getPeriodStart(30)),
@@ -188,6 +201,71 @@ export default async function AdminPage({
 
         <RemnawaveStatusCard initialStatus={remnawaveStatus} />
         <SiteRestartCard />
+
+        <Card>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Badge>Auto provisioning</Badge>
+              <h2 className="mt-4 text-2xl font-bold uppercase tracking-[0.08em] text-white">
+                РђРІС‚РѕРїРѕРґРіРѕС‚РѕРІРєР° РЅРѕРґ
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-zinc-400">
+                РЎР°Р№С‚ РјРѕР¶РµС‚ РєСѓРїРёС‚СЊ VPS РІ Aeza, РїСЂРѕРїРёСЃР°С‚СЊ DNS РІ Timeweb, СЃРѕР·РґР°С‚СЊ РїСЂРѕС„РёР»СЊ, РЅРѕРґСѓ, С…РѕСЃС‚ Рё СЃРєРІР°Рґ РІ Remnawave. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ dry-run РЅРµ СЃРїРёСЃС‹РІР°РµС‚ РґРµРЅСЊРіРё.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-400">
+                <span className="rounded-full border border-white/10 px-3 py-1">
+                  {provisioning.config.enabled ? "enabled" : "disabled"}
+                </span>
+                <span className="rounded-full border border-white/10 px-3 py-1">
+                  {provisioning.config.dryRun ? "dry-run" : "real purchases"}
+                </span>
+                <span className="rounded-full border border-white/10 px-3 py-1">
+                  targets: {provisioning.config.targets.length}
+                </span>
+              </div>
+              {provisioning.missing.length ? (
+                <p className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                  Р”Р»СЏ СЂРµР°Р»СЊРЅРѕРіРѕ Р·Р°РїСѓСЃРєР° РЅРµ С…РІР°С‚Р°РµС‚: {provisioning.missing.join(", ")}
+                </p>
+              ) : null}
+            </div>
+            <form action={runProvisioningNowAction}>
+              <PendingButton>Р—Р°РїСѓСЃС‚РёС‚СЊ Р°РІС‚РѕРїРѕРґРіРѕС‚РѕРІРєСѓ</PendingButton>
+            </form>
+          </div>
+
+          <div className="mt-6 grid gap-3 lg:grid-cols-3">
+            {provisioning.jobs.length ? (
+              provisioning.jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="rounded-3xl border border-white/10 bg-black/20 p-4"
+                >
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                    {job.locationName}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className="text-xl font-bold text-white">{job.nodeName}</p>
+                    <span className="rounded-full border border-cyan-400/30 px-3 py-1 text-xs text-cyan-100">
+                      {job.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-400">{job.fqdn}</p>
+                  {job.serverIp ? (
+                    <p className="mt-2 text-sm text-zinc-300">IP: {job.serverIp}</p>
+                  ) : null}
+                  {job.lastError ? (
+                    <p className="mt-3 text-xs leading-6 text-red-200">{job.lastError}</p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-zinc-400">
+                Р—Р°РґР°С‡Рё РїРѕСЏРІСЏС‚СЃСЏ РїРѕСЃР»Рµ РїРµСЂРІРѕРіРѕ Р·Р°РїСѓСЃРєР° Р°РІС‚РѕРїРѕРґРіРѕС‚РѕРІРєРё.
+              </p>
+            )}
+          </div>
+        </Card>
 
         <section className="grid gap-4 md:grid-cols-3">
           <Card>

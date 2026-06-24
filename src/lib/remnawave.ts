@@ -1,5 +1,8 @@
 import {
+  CreateConfigProfileCommand,
+  CreateHostCommand,
   CreateInternalSquadCommand,
+  CreateNodeCommand,
   CreateUserCommand,
   DeleteUserCommand,
   DeleteUserHwidDeviceCommand,
@@ -187,6 +190,28 @@ export async function ensureRemoteSquad(squad: Pick<Squad, "name" | "remnawaveIn
   return CreateInternalSquadCommand.ResponseSchema.parse(result).response.uuid;
 }
 
+export async function createRemoteInternalSquad(params: {
+  name: string;
+  inbounds: string[];
+}) {
+  if (!isConfigured()) {
+    throw new Error("Remnawave is not configured.");
+  }
+
+  const body = {
+    name: params.name,
+    inbounds: params.inbounds,
+  };
+  CreateInternalSquadCommand.RequestSchema.parse(body);
+  const result = await remnawaveRequest<CreateInternalSquadCommand.Response>({
+    path: CreateInternalSquadCommand.url,
+    method: "POST",
+    body,
+  });
+
+  return CreateInternalSquadCommand.ResponseSchema.parse(result).response;
+}
+
 function buildRemoteUsername(user: Pick<User, "id" | "email">) {
   const local = user.email.split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 20) || "user";
   return `${local}-${user.id.slice(-8)}`.slice(0, 36);
@@ -330,4 +355,98 @@ export async function deleteRemoteUserDevice(params: {
   });
 
   return DeleteUserHwidDeviceCommand.ResponseSchema.parse(result).response.devices;
+}
+
+export async function createRemoteConfigProfile(params: {
+  name: string;
+  config: Record<string, unknown>;
+}) {
+  if (!isConfigured()) {
+    throw new Error("Remnawave is not configured.");
+  }
+
+  const body = {
+    name: params.name,
+    config: params.config,
+  };
+  CreateConfigProfileCommand.RequestSchema.parse(body);
+  const result = await remnawaveRequest<CreateConfigProfileCommand.Response>({
+    path: CreateConfigProfileCommand.url,
+    method: "POST",
+    body,
+  });
+
+  return CreateConfigProfileCommand.ResponseSchema.parse(result).response;
+}
+
+export async function createRemoteNode(params: {
+  name: string;
+  address: string;
+  port: number;
+  countryCode: string;
+  activeConfigProfileUuid: string;
+  activeInbounds: string[];
+}) {
+  if (!isConfigured()) {
+    throw new Error("Remnawave is not configured.");
+  }
+
+  const body = {
+    name: params.name,
+    address: params.address,
+    port: params.port,
+    countryCode: params.countryCode,
+    isTrafficTrackingActive: true,
+    configProfile: {
+      activeConfigProfileUuid: params.activeConfigProfileUuid,
+      activeInbounds: params.activeInbounds,
+    },
+    tags: ["auto-provisioned"],
+  };
+  CreateNodeCommand.RequestSchema.parse(body);
+  const result = await remnawaveRequest<CreateNodeCommand.Response>({
+    path: CreateNodeCommand.url,
+    method: "POST",
+    body,
+  });
+
+  return CreateNodeCommand.ResponseSchema.parse(result).response;
+}
+
+export async function createRemoteHost(params: {
+  remark: string;
+  address: string;
+  port: number;
+  configProfileUuid: string;
+  configProfileInboundUuid: string;
+  nodeUuid: string;
+  internalSquadUuid?: string | null;
+}) {
+  if (!isConfigured()) {
+    throw new Error("Remnawave is not configured.");
+  }
+
+  const body = {
+    remark: params.remark,
+    address: params.address,
+    port: params.port,
+    sni: params.address,
+    alpn: "h3" as const,
+    securityLayer: "TLS" as const,
+    tag: "ROUTING_HOST",
+    inbound: {
+      configProfileUuid: params.configProfileUuid,
+      configProfileInboundUuid: params.configProfileInboundUuid,
+    },
+    nodes: [params.nodeUuid],
+    excludedInternalSquads: params.internalSquadUuid ? [] : undefined,
+  };
+  CreateHostCommand.RequestSchema.parse(body);
+  const result = await remnawaveRequest<CreateHostCommand.Response>({
+    path: CreateHostCommand.url,
+    method: "POST",
+    body,
+  });
+
+  return CreateHostCommand.ResponseSchema.parse(result).response;
 }

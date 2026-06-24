@@ -33,6 +33,7 @@ import {
 import { createSquad, deleteSquad, updateSquad } from "@/lib/squads";
 import { resolveUserIdentifier } from "@/lib/user-identity";
 import { SUBSCRIPTION_DELETION_GRACE_HOURS } from "@/lib/site";
+import { runProvisioningSweep } from "@/lib/provisioning";
 import {
   createYooKassaPayment,
   type YooKassaPaymentMethod,
@@ -752,6 +753,13 @@ export async function deleteOwnHwidDeviceAction(formData: FormData) {
 export async function runSyncNowAction() {
   await requireAdmin();
   await runLifecycleSweep();
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function runProvisioningNowAction() {
+  await requireAdmin();
+  await runProvisioningSweep();
   revalidatePath("/admin");
   revalidatePath("/dashboard");
 }

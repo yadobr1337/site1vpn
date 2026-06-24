@@ -116,6 +116,33 @@ model Squad {
   users User[]
 }
 
+model ProvisioningJob {
+  id                         String   @id @default(cuid())
+  locationKey                String   @unique
+  locationName               String
+  countryCode                String
+  nodeName                   String
+  subdomain                  String
+  fqdn                       String
+  productId                  String
+  status                     String   @default("PENDING")
+  orderId                    String?
+  serverId                   String?
+  serverIp                   String?
+  remnawaveConfigProfileUuid String?
+  remnawaveInboundUuid       String?
+  remnawaveNodeUuid          String?
+  remnawaveHostUuid          String?
+  squadId                    String?
+  remnawaveInternalSquadUuid String?
+  lastError                  String?
+  logs                       Json?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([status, updatedAt])
+}
+
 model BalanceTransaction {
   id           String          @id @default(cuid())
   userId       String
